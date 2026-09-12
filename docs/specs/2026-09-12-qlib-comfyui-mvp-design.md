@@ -40,7 +40,7 @@ MVP 支持本地 CSV/Parquet 数据、Qlib DatasetH、LightGBM 与 Linear 模型
 
 ## ty-quant 集成策略
 
-已检查 `yuanyuli/ty-qlib`（空仓库）及 `yuanyuli/qlib`（上游 Qlib fork，未发现独立 ty-quant 代码），因此 MVP 不假设其私有 API。内部定义 `QuantBackend` 协议，包含 `build_dataset`、`train`、`predict`、`backtest` 四个方法；默认实现 `QlibBackend`。未来获得 ty-quant 源码后，只需新增适配器和配置，不改变节点契约。
+已调研 `yuanyuli/ty-quant`：其为基于 Qlib + RD-Agent 的 FastAPI/React 平台，包含数据源插件、Tushare、HDF5 缓存、数据质量检查、因子与回测服务；ComfyUI MVP 复用其协议和数据口径，但不依赖其 Web/API 运行时。内部定义 `QuantBackend` 协议，包含 `build_dataset`、`train`、`predict`、`backtest` 四个方法；默认实现 `QlibBackend`。未来获得 ty-quant 源码后，只需新增适配器和配置，不改变节点契约。
 
 ## 测试与验收
 
@@ -81,3 +81,4 @@ MVP 节点增加：`TushareConfig`（token 来源、限速、重试）、`Tushar
 ### 新增验收
 
 固定 fixture 必须包含一次分红导致 adj_factor 变化的股票，验证 qfq close 连续、raw close 保留、volume 反向调整、anchor 写入 manifest、缺失因子阻止训练、Tushare API 使用 token 且不泄漏。另加导出后 calendar/bin/instruments 三方一致性测试。
+

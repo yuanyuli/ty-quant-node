@@ -1,0 +1,7 @@
+[project]
+name='ty-quant-node'
+version='0.1.0'
+requires-python='>=3.12,<3.13'
+dependencies=["pyqlib>=0.9.7", "pandas>=2.0", "numpy>=1.24"]
+[tool.pytest.ini_options]
+pythonpath=['src']

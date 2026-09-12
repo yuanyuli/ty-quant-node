@@ -1,3 +1,5 @@
 # 调研下载物不纳入节点发布包
 research/*
 !research/.gitkeep
+__pycache__/
+*.pyc

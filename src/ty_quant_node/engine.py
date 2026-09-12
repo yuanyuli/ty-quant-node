@@ -3,10 +3,10 @@ from pathlib import Path
 import json
 import numpy as np
 import pandas as pd
-from qlib.data.dataset.loader import StaticDataLoader
 from .data import apply_adjustment
 
 def build_dataset(raw: pd.DataFrame, adjustment="qfq"):
+    from qlib.data.dataset.loader import StaticDataLoader
     df = apply_adjustment(raw, adjustment)
     df = df.sort_values(["datetime", "instrument"]).copy()
     df["datetime"] = pd.to_datetime(df["datetime"])

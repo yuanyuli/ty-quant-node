@@ -2,7 +2,7 @@
 
 ## 背景与目标
 
-在 `D:\work_station\ty-comfyui-node` 下新增独立仓库 `qlib-comfyui`，把 Qlib 的离线量化研究闭环映射为 ComfyUI 节点图。MVP 的验收闭环是：固定 CSV fixture → DatasetH → LightGBM/Linear 训练 → 预测信号 → TopK/Dropout 回测 → 指标与净值曲线输出。
+在 `D:\work_station\ty-comfyui-node` 下新增独立仓库 `ty-quant-node`，把 Qlib 的离线量化研究闭环映射为 ComfyUI 节点图。MVP 的验收闭环是：固定 CSV fixture → DatasetH → LightGBM/Linear 训练 → 预测信号 → TopK/Dropout 回测 → 指标与净值曲线输出。
 
 现有 Civitai 节点提供参考：独立仓库、ComfyUI 注册映射、客户端与业务逻辑分离、缓存、离线 fixture、清晰错误信息和前端结果展示。Qlib 源码调研确认其稳定边界为 DataHandler/DatasetH、BaseModel fit/predict、SignalRecord/PortAnaRecord 和 R 实验记录器。
 
@@ -12,7 +12,7 @@ MVP 支持本地 CSV/Parquet 数据、Qlib DatasetH、LightGBM 与 Linear 模型
 
 ## 仓库与运行边界
 
-仓库路径为 `D:\work_station\ty-comfyui-node\qlib-comfyui`，必须拥有独立 Git 历史、README、许可证、测试和 ComfyUI `__init__.py`。不得导入 `civitai-inspiration` 或父项目运行时代码；共享仅限父目录 uv 环境。Qlib 作为明确依赖安装到该环境，ComfyUI 通过 junction 接入 `custom_nodes`。
+仓库路径为 `D:\work_station\ty-comfyui-node\ty-quant-node`，必须拥有独立 Git 历史、README、许可证、测试和 ComfyUI `__init__.py`。不得导入 `civitai-inspiration` 或父项目运行时代码；共享仅限父目录 uv 环境。Qlib 作为明确依赖安装到该环境，ComfyUI 通过 junction 接入 `custom_nodes`。
 
 ## 节点与数据契约
 
@@ -44,7 +44,7 @@ MVP 支持本地 CSV/Parquet 数据、Qlib DatasetH、LightGBM 与 Linear 模型
 
 ## 测试与验收
 
-测试全部使用固定小型 CSV fixture 和临时目录：节点注册与 INPUT_TYPES；路径/参数校验；句柄 JSON 往返；DatasetH 构建；LightGBM/Linear 训练与预测形状；回测指标边界（空信号、单日、缺失值）；缓存命中与失效；报告 PNG 生成。验收命令为 `uv run pytest qlib-comfyui/tests -q`，并在真实 ComfyUI 重启后确认节点可搜索且示例 workflow 可执行。
+测试全部使用固定小型 CSV fixture 和临时目录：节点注册与 INPUT_TYPES；路径/参数校验；句柄 JSON 往返；DatasetH 构建；LightGBM/Linear 训练与预测形状；回测指标边界（空信号、单日、缺失值）；缓存命中与失效；报告 PNG 生成。验收命令为 `uv run pytest ty-quant-node/tests -q`，并在真实 ComfyUI 重启后确认节点可搜索且示例 workflow 可执行。
 
 ## 版本与后续演进
 
@@ -81,4 +81,5 @@ MVP 节点增加：`TushareConfig`（token 来源、限速、重试）、`Tushar
 ### 新增验收
 
 固定 fixture 必须包含一次分红导致 adj_factor 变化的股票，验证 qfq close 连续、raw close 保留、volume 反向调整、anchor 写入 manifest、缺失因子阻止训练、Tushare API 使用 token 且不泄漏。另加导出后 calendar/bin/instruments 三方一致性测试。
+
 

@@ -2,35 +2,35 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 在独立 `qlib-comfyui` 仓库中实现 Qlib 离线研究、训练、预测、回测和报告的 ComfyUI MVP。
+**Goal:** 在独立 `ty-quant-node` 仓库中实现 Qlib 离线研究、训练、预测、回测和报告的 ComfyUI MVP。
 
 **Architecture:** 以版本化 dataclass 句柄连接节点，QlibBackend 封装 Qlib API；任务结果写入白名单缓存目录，节点只传递轻量元数据。ComfyUI 层负责 INPUT_TYPES、注册和输出转换，领域层保持可离线测试。
 
 **Tech Stack:** Python 3.10+、Qlib、pandas、numpy、LightGBM、matplotlib、pytest、ComfyUI node API。
 
-**Spec:** `docs/superpowers/specs/2026-09-12-qlib-comfyui-mvp-design.md`
+**Spec:** `docs/superpowers/specs/2026-09-12-ty-quant-node-mvp-design.md`
 
 ## Global Constraints
 
-- 仓库必须位于 `D:\work_station\ty-comfyui-node\qlib-comfyui` 并独立维护。
+- 仓库必须位于 `D:\work_station\ty-comfyui-node\ty-quant-node` 并独立维护。
 - 所有文档、README、错误信息使用中文；公共代码 API 使用清晰英文命名。
 - 不依赖 `civitai-inspiration` 或父项目运行时代码；共享仅限父目录 uv 环境。
 - 只允许白名单路径；禁止 URL、路径穿越和任意 pickle 加载。
 - 默认随机种子为 42；缓存键包含输入 hash、Qlib 版本和节点版本。
-- 测试必须使用固定 fixture，命令为 `uv run pytest qlib-comfyui/tests -q`。
+- 测试必须使用固定 fixture，命令为 `uv run pytest ty-quant-node/tests -q`。
 
 ### Task 1: 初始化独立仓库与测试骨架
 
-**Files:** Create `qlib-comfyui/__init__.py`, `qlib-comfyui/pyproject.toml`, `qlib-comfyui/README.md`, `qlib-comfyui/LICENSE`, `qlib-comfyui/tests/conftest.py`, `qlib-comfyui/tests/test_registration.py`.
+**Files:** Create `ty-quant-node/__init__.py`, `ty-quant-node/pyproject.toml`, `ty-quant-node/README.md`, `ty-quant-node/LICENSE`, `ty-quant-node/tests/conftest.py`, `ty-quant-node/tests/test_registration.py`.
 
 - [ ] 写测试断言 `NODE_CLASS_MAPPINGS` 存在且包含七个节点名。
-- [ ] 运行 `uv run pytest qlib-comfyui/tests/test_registration.py -q`，确认因模块不存在而失败。
+- [ ] 运行 `uv run pytest ty-quant-node/tests/test_registration.py -q`，确认因模块不存在而失败。
 - [ ] 创建最小包、pytest 配置和中文安装说明；先用占位节点映射满足导入。
 - [ ] 重跑测试并提交 `chore: scaffold qlib comfyui package`。
 
 ### Task 2: 句柄、路径安全与缓存
 
-**Files:** Create `qlib-comfyui/core/handles.py`, `core/security.py`, `core/cache.py`, `tests/test_core.py`.
+**Files:** Create `ty-quant-node/core/handles.py`, `core/security.py`, `core/cache.py`, `tests/test_core.py`.
 
 - [ ] 测试 `Handle(kind, version, path, metadata).to_dict()/from_dict()` 往返、拒绝未知 kind、拒绝白名单外路径和 `..`。
 - [ ] 实现 `Handle`、`resolve_allowed_path(path, roots)`、`Cache.key(config, input_hashes, versions)` 和存在性校验。
@@ -70,9 +70,10 @@
 
 ### Task 7: 文档、示例与真实环境验证
 
-**Files:** Create `qlib-comfyui/examples/mvp_workflow.json`, `qlib-comfyui/tests/test_e2e_fixture.py`; Modify `README.md`.
+**Files:** Create `ty-quant-node/examples/mvp_workflow.json`, `ty-quant-node/tests/test_e2e_fixture.py`; Modify `README.md`.
 
 - [ ] 编写离线端到端测试，从 fixture 运行七节点闭环并断言报告文件存在。
 - [ ] 加入 junction 命令、Qlib 数据目录配置、缓存清理、ComfyUI 重启说明和示例 workflow。
-- [ ] 运行 `uv run pytest qlib-comfyui/tests -q`；在 ComfyUI 建立 junction 后重启后端，确认节点可搜索并执行示例。
+- [ ] 运行 `uv run pytest ty-quant-node/tests -q`；在 ComfyUI 建立 junction 后重启后端，确认节点可搜索并执行示例。
 - [ ] 提交 `docs: document qlib comfyui mvp usage`。
+

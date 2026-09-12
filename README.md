@@ -11,5 +11,6 @@
 开发时通过 junction 接入 ComfyUI：
 
 ```powershell
-cmd /c mklink /J "E:\ComfyUI_windows_portable-G314\ComfyUI\custom_nodes\qlib-comfyui" "D:\work_station\ty-comfyui-node\qlib-comfyui"
+cmd /c mklink /J "E:\ComfyUI_windows_portable-G314\ComfyUI\custom_nodes\ty-quant-node" "D:\work_station\ty-comfyui-node\ty-quant-node"
 ```
+

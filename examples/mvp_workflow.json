@@ -1,0 +1,14 @@
+{
+  "last_node_id": 7,
+  "last_link_id": 7,
+  "nodes": [
+    {"id": 1, "type": "QlibExport", "pos": [40, 80], "size": [320, 120], "outputs": [{"name": "QLIB_EXPORT", "type": "QLIB_EXPORT", "links": [1]}], "widgets_values": ["tests/fixtures/market.csv", "qfq", "outputs/ty_quant/provider"]},
+    {"id": 2, "type": "QlibDataset", "pos": [420, 80], "size": [340, 160], "inputs": [{"name": "export", "type": "QLIB_EXPORT", "link": 1}], "outputs": [{"name": "QLIB_DATASET", "type": "QLIB_DATASET", "links": [2, 5]}], "widgets_values": ["2024-01-01", "2024-01-03", "2024-01-04", "2024-01-06"]},
+    {"id": 3, "type": "QlibModel", "pos": [40, 300], "size": [320, 100], "outputs": [{"name": "QLIB_MODEL_SPEC", "type": "QLIB_MODEL_SPEC", "links": [3]}], "widgets_values": ["linear", "{}"]},
+    {"id": 4, "type": "QlibTrain", "pos": [820, 80], "size": [340, 140], "inputs": [{"name": "dataset", "type": "QLIB_DATASET", "link": 2}, {"name": "model", "type": "QLIB_MODEL_SPEC", "link": 3}], "outputs": [{"name": "QLIB_TRAINED_MODEL", "type": "QLIB_TRAINED_MODEL", "links": [4]}], "widgets_values": ["outputs/ty_quant/model"]},
+    {"id": 5, "type": "QlibPredict", "pos": [1220, 80], "size": [340, 120], "inputs": [{"name": "trained_model", "type": "QLIB_TRAINED_MODEL", "link": 4}, {"name": "dataset", "type": "QLIB_DATASET", "link": 5}], "outputs": [{"name": "QLIB_SIGNAL_TABLE", "type": "QLIB_SIGNAL_TABLE", "links": [6]}], "widgets_values": ["test"]},
+    {"id": 6, "type": "QlibBacktest", "pos": [1620, 80], "size": [340, 140], "inputs": [{"name": "signal", "type": "QLIB_SIGNAL_TABLE", "link": 6}], "outputs": [{"name": "QLIB_BACKTEST_RESULT", "type": "QLIB_BACKTEST_RESULT", "links": [7]}], "widgets_values": [1, 0, 5.0]},
+    {"id": 7, "type": "QlibReport", "pos": [2020, 80], "size": [340, 140], "inputs": [{"name": "backtest_result", "type": "QLIB_BACKTEST_RESULT", "link": 7}], "outputs": [{"name": "IMAGE", "type": "IMAGE"}], "widgets_values": ["outputs/ty_quant/report"]}
+  ],
+  "links": [[1, 1, 0, 2, 0, "QLIB_EXPORT"], [2, 2, 0, 4, 0, "QLIB_DATASET"], [3, 3, 0, 4, 1, "QLIB_MODEL_SPEC"], [4, 4, 0, 5, 0, "QLIB_TRAINED_MODEL"], [5, 2, 0, 5, 1, "QLIB_DATASET"], [6, 5, 0, 6, 0, "QLIB_SIGNAL_TABLE"], [7, 6, 0, 7, 0, "QLIB_BACKTEST_RESULT"]]
+}

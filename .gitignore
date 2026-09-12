@@ -3,3 +3,9 @@ research/*
 !research/.gitkeep
 __pycache__/
 *.pyc
+uv.lock
+.venv/
+.artifacts/
+outputs/
+build/
+*.egg-info/

@@ -1,42 +1,37 @@
-"""离线可测试的 Qlib MVP 引擎。"""
-from pathlib import Path
+"""兼容旧 MVP 调用方式的门面；新节点使用 backend 模块。"""
+
 import json
-import numpy as np
+from pathlib import Path
 import pandas as pd
-from .data import apply_adjustment
+
+from .backend.qlib_backend import build_dataset_from_frame
+from .backend.model_backend import ModelSpec, train_model, predict_model
+from .backend.backtest_backend import backtest as run_backtest
+
 
 def build_dataset(raw: pd.DataFrame, adjustment="qfq"):
-    from qlib.data.dataset.loader import StaticDataLoader
-    df = apply_adjustment(raw, adjustment)
-    df = df.sort_values(["datetime", "instrument"]).copy()
-    df["datetime"] = pd.to_datetime(df["datetime"])
-    df["feature_return"] = df.groupby("instrument")["close"].pct_change().fillna(0.0)
-    df["label"] = df.groupby("instrument")["close"].shift(-1) / df["close"] - 1.0
-    df = df.dropna(subset=["label"])
-    qdf = df.set_index(["datetime", "instrument"])[["feature_return", "label"]]
-    loader = StaticDataLoader(qdf)
-    # StaticDataLoader 是 Qlib 官方 Dataset loader；MVP 直接保留 loader，
-    # 后续接入 Handler 时可无缝替换为 DatasetH。
-    return loader, df
+    bundle = build_dataset_from_frame(raw, adjustment=adjustment)
+    return bundle.dataset, bundle.frame
+
 
 def train_predict(raw: pd.DataFrame, adjustment="qfq"):
-    dataset, derived = build_dataset(raw, adjustment)
-    x = derived[["feature_return"]].to_numpy(float); y = derived["label"].to_numpy(float)
-    X = np.c_[np.ones(len(x)), x]
-    coef = np.linalg.lstsq(X, y, rcond=None)[0]
-    derived["prediction"] = np.c_[np.ones(len(x)), x] @ coef
-    return {"dataset": dataset, "data": derived, "coef": coef.tolist(), "adjustment": adjustment}
+    bundle = build_dataset_from_frame(raw, adjustment=adjustment)
+    trained = train_model(bundle, ModelSpec("linear", {}), Path(".cache") / "compat-model")
+    signal = predict_model(trained, bundle, "test")
+    data = bundle.frame.merge(signal[["instrument", "datetime", "score"]], on=["instrument", "datetime"], how="left")
+    data["prediction"] = data["score"]
+    return {"dataset": bundle.dataset, "data": data, "bundle": bundle, "model": trained, "coef": trained.model.tolist(), "adjustment": adjustment}
+
 
 def backtest(result, topk=1, initial_cash=1_000_000.0):
-    df = result["data"].copy(); rows=[]; equity=initial_cash
-    for dt, g in df.groupby("datetime"):
-        picks=g.nlargest(topk, "prediction"); ret=float(picks["label"].mean()) if len(picks) else 0.0
-        equity *= 1.0 + ret; rows.append({"datetime": dt, "return": ret, "equity": equity})
-    curve=pd.DataFrame(rows); metrics={"total_return": float(equity/initial_cash-1), "final_equity": float(equity), "days": len(curve)}
-    return metrics, curve
+    signal = result["data"][["instrument", "datetime", "prediction", "label"]].rename(columns={"prediction": "score"})
+    tested = run_backtest(signal, topk=topk, initial_equity=initial_cash)
+    return tested.metrics, tested.equity
+
 
 def save_report(metrics, curve, output_dir):
-    out=Path(output_dir); out.mkdir(parents=True, exist_ok=True)
-    (out/"metrics.json").write_text(json.dumps(metrics, ensure_ascii=False, indent=2), encoding="utf-8")
-    curve.to_csv(out/"equity.csv", index=False)
+    out = Path(output_dir).resolve()
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "metrics.json").write_text(json.dumps(metrics, ensure_ascii=False, indent=2), encoding="utf-8")
+    curve.to_csv(out / "equity.csv", index=False)
     return str(out)

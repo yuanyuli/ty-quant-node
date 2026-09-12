@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.10+、Qlib、pandas、numpy、LightGBM、matplotlib、pytest、ComfyUI node API。
 
-**Spec:** `docs/superpowers/specs/2026-09-12-ty-quant-node-mvp-design.md`
+**Spec:** `docs/specs/2026-09-12-qlib-comfyui-mvp-design.md`
 
 ## Global Constraints
 

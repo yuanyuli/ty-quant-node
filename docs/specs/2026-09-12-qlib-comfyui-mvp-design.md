@@ -82,4 +82,8 @@ MVP 节点增加：`TushareConfig`（token 来源、限速、重试）、`Tushar
 
 固定 fixture 必须包含一次分红导致 adj_factor 变化的股票，验证 qfq close 连续、raw close 保留、volume 反向调整、anchor 写入 manifest、缺失因子阻止训练、Tushare API 使用 token 且不泄漏。另加导出后 calendar/bin/instruments 三方一致性测试。
 
+### ComfyUI 解释器兼容
+
+共享 uv 环境使用 Python 3.12 运行真实 Qlib `DatasetH` 验证；当前便携版 ComfyUI 使用 Python 3.14，不能直接复用 Python 3.12 的 NumPy 二进制扩展。节点在 ComfyUI 解释器未安装 Qlib 时使用同一 `prepare(segment)` 数据契约的本地兼容实现，导出格式、句柄和训练/预测/回测结果不变；共享环境具备 Qlib 时自动使用真实 `DatasetH`。
+
 

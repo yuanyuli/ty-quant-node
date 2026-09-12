@@ -1,79 +1,93 @@
-# Qlib ComfyUI MVP Implementation Plan
+# Qlib ComfyUI MVP 实施计划
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 在独立 `ty-quant-node` 仓库中实现 Qlib 离线研究、训练、预测、回测和报告的 ComfyUI MVP。
+**目标：** 在独立 `ty-quant-node` 仓库中，把行情复权、Qlib 导出、DatasetH、模型训练、预测、TopK 回测和报告组成可运行的 ComfyUI MVP。
 
-**Architecture:** 以版本化 dataclass 句柄连接节点，QlibBackend 封装 Qlib API；任务结果写入白名单缓存目录，节点只传递轻量元数据。ComfyUI 层负责 INPUT_TYPES、注册和输出转换，领域层保持可离线测试。
+**架构：** `src/ty_quant_node` 分为数据、后端、核心和节点适配层。节点只传递带版本和路径的轻量句柄；DataFrame、模型文本和净值曲线写入本地 artifact。共享 Python 3.12 环境执行真实 Qlib，便携版 ComfyUI Python 3.14 缺少兼容 Qlib 时使用相同 `prepare(segment)` 契约的兼容数据集。
 
-**Tech Stack:** Python 3.10+、Qlib、pandas、numpy、LightGBM、matplotlib、pytest、ComfyUI node API。
+**技术栈：** Python 3.12、Qlib 0.9.7、pandas、numpy、pyarrow、LightGBM、matplotlib、pytest、ComfyUI node API。
 
-**Spec:** `docs/specs/2026-09-12-qlib-comfyui-mvp-design.md`
+**规格：** `docs/specs/2026-09-12-qlib-comfyui-mvp-design.md`
 
-## Global Constraints
+## 全局约束
 
-- 仓库必须位于 `D:\work_station\ty-comfyui-node\ty-quant-node` 并独立维护。
-- 所有文档、README、错误信息使用中文；公共代码 API 使用清晰英文命名。
-- 不依赖 `civitai-inspiration` 或父项目运行时代码；共享仅限父目录 uv 环境。
-- 只允许白名单路径；禁止 URL、路径穿越和任意 pickle 加载。
-- 默认随机种子为 42；缓存键包含输入 hash、Qlib 版本和节点版本。
-- 测试必须使用固定 fixture，命令为 `uv run pytest ty-quant-node/tests -q`。
+- 仓库路径固定为 `D:\work_station\ty-comfyui-node\ty-quant-node`，独立 Git 历史和 GitHub 仓库。
+- 文档和错误信息使用中文；公共代码 API 使用清晰英文命名。
+- 原始 OHLCV 和 `adj_factor` 双轨保存；默认 `qfq`，金额不复权，成交量反向调整。
+- 默认 seed 为 42；workflow JSON 只保存句柄元数据，不保存大表或模型二进制。
+- 离线测试使用固定 fixture；命令为 `uv run pytest ty-quant-node/tests -q`。
+- Tushare token 只从环境变量读取，不进入 workflow、日志和缓存键。
 
-### Task 1: 初始化独立仓库与测试骨架
+## 已落地任务
 
-**Files:** Create `ty-quant-node/__init__.py`, `ty-quant-node/pyproject.toml`, `ty-quant-node/README.md`, `ty-quant-node/LICENSE`, `ty-quant-node/tests/conftest.py`, `ty-quant-node/tests/test_registration.py`.
+### 任务 1：仓库和注册入口
 
-- [ ] 写测试断言 `NODE_CLASS_MAPPINGS` 存在且包含七个节点名。
-- [ ] 运行 `uv run pytest ty-quant-node/tests/test_registration.py -q`，确认因模块不存在而失败。
-- [ ] 创建最小包、pytest 配置和中文安装说明；先用占位节点映射满足导入。
-- [ ] 重跑测试并提交 `chore: scaffold qlib comfyui package`。
+文件：根目录 `__init__.py`、`pyproject.toml`、`README.md`、`LICENSE`、`src/ty_quant_node/__init__.py`。
 
-### Task 2: 句柄、路径安全与缓存
+- [x] 建立独立包和 ComfyUI 加载入口。
+- [x] 注册 11 个节点：`QlibRuntime`、`TushareConfig`、`TushareDailyFetch`、`AdjustPrices`、`QlibExport`、`QlibDataset`、`QlibModel`、`QlibTrain`、`QlibPredict`、`QlibBacktest`、`QlibReport`。
+- [x] 配置 setuptools 构建和 Python 3.12 依赖。
 
-**Files:** Create `ty-quant-node/core/handles.py`, `core/security.py`, `core/cache.py`, `tests/test_core.py`.
+### 任务 2：句柄、路径和缓存
 
-- [ ] 测试 `Handle(kind, version, path, metadata).to_dict()/from_dict()` 往返、拒绝未知 kind、拒绝白名单外路径和 `..`。
-- [ ] 实现 `Handle`、`resolve_allowed_path(path, roots)`、`Cache.key(config, input_hashes, versions)` 和存在性校验。
-- [ ] 运行核心测试并提交 `feat: add safe versioned handles and cache`。
+文件：`src/ty_quant_node/core/handles.py`、`core/security.py`、`core/cache.py`。
 
-### Task 3: QlibBackend 与数据集构建
+- [x] `Handle.to_dict/from_dict` 校验已知类型、版本和元数据。
+- [x] `resolve_allowed_path` 拒绝 URL、设备路径、路径穿越和白名单外路径。
+- [x] `cache_key` 使用规范化配置、输入 hash 和版本生成 SHA-256 键。
 
-**Files:** Create `qlib_comfyui/backend/protocol.py`, `backend/qlib_backend.py`, `core/config.py`, `tests/fixtures/market.csv`, `tests/test_backend_dataset.py`.
+### 任务 3：行情、复权、Tushare 和 Qlib 导出
 
-- [ ] 用 fixture 测试 CSV schema（instrument、datetime、feature、label）、日期 segment 和缺失字段错误。
-- [ ] 定义 `QuantBackend.build_dataset(config) -> Handle`；实现 provider 初始化、CSV/Parquet 读取、DatasetH/DataHandler 构造和 schema 元数据。
-- [ ] 在测试环境用临时 provider/cache 目录，验证 dataset 句柄可序列化；提交 `feat: build offline qlib datasets`。
+文件：`src/ty_quant_node/data/__init__.py`、`data/tushare_source.py`、`backend/market.py`。
 
-### Task 4: 模型规格、训练与预测
+- [x] 规范化本地字段和 Tushare `daily` 字段。
+- [x] 分别调用 `daily` 与 `adj_factor`，合并 raw+factor，并区分网络、权限和无数据错误。
+- [x] 实现 `none/qfq/hfq`、anchor 日期/因子、缺失因子阻止策略。
+- [x] 写出 `calendars/day.txt`、`instruments/all.txt`、`features/*/*.day.bin`、`dataset.parquet` 和 `manifest.json`。
+- [x] 校验 calendar、bin 长度和 instruments/features 集合一致；真实 Qlib `D.features` 可读取导出 provider。
 
-**Files:** Create `backend/model_backend.py`, `nodes/model_nodes.py`, `tests/test_train_predict.py`; Modify `__init__.py`.
+### 任务 4：DatasetH、模型和预测
 
-- [ ] 测试 `lightgbm` 与 `linear` 两种 model spec，训练后预测表包含 instrument、datetime、score，且结果行数与 test segment 一致。
-- [ ] 实现 `QlibModel` 参数 JSON 校验、`QlibTrain` fit/recorder 摘要、`QlibPredict` segment 选择；将模型文件放入缓存目录并记录输入 hash。
-- [ ] 运行训练预测测试并提交 `feat: add qlib training and prediction nodes`。
+文件：`src/ty_quant_node/backend/qlib_backend.py`、`backend/model_backend.py`。
 
-### Task 5: 回测与指标
+- [x] 从 adjusted frame 构造 `feature_return` 和下一日 `label`。
+- [x] 使用 Qlib `DatasetH + DataHandlerLP + StaticDataLoader`；ComfyUI 3.14 无 Qlib 时回退兼容实现。
+- [x] 支持 Linear 和 LightGBM，模型保存为 JSON 或 LightGBM 文本，不加载未知 pickle。
+- [x] 输出包含 `instrument`、`datetime`、`score` 的 signal 表。
 
-**Files:** Create `backend/backtest_backend.py`, `nodes/backtest_nodes.py`, `tests/test_backtest.py`.
+### 任务 5：回测和报告
 
-- [ ] 测试 TopK/Dropout 组合、交易成本、空信号、单日数据和缺失值；断言累计收益、年化、最大回撤、交易次数字段存在。
-- [ ] 实现 `QuantBackend.backtest(signal, config)`，输出版本化结果句柄、CSV 净值和指标 JSON；数值不足的 Sharpe/IC 返回 null。
-- [ ] 运行回测测试并提交 `feat: add qlib backtest node`。
+文件：`src/ty_quant_node/backend/backtest_backend.py`、`core/report.py`。
 
-### Task 6: 报告输出与 ComfyUI 注册
+- [x] 实现 TopK、Dropout、交易成本、空信号和单日边界。
+- [x] 输出累计收益、年化收益、最大回撤、Sharpe、IC、RankIC、交易次数和净值曲线。
+- [x] 生成 RGB PNG、JSON 摘要和 ComfyUI `IMAGE` 张量。
 
-**Files:** Create `nodes/runtime_node.py`, `nodes/dataset_node.py`, `nodes/report_node.py`, `core/report.py`, `tests/test_report.py`; Modify `__init__.py`.
+### 任务 6：节点级串联
 
-- [ ] 测试报告生成 RGB PNG、摘要 JSON 和 ComfyUI `IMAGE` 张量形状；测试七个节点的 INPUT_TYPES 与类别名。
-- [ ] 实现 Runtime、Dataset、Model、Train、Predict、Backtest、Report 节点及 `NODE_DISPLAY_NAME_MAPPINGS`；报告加载 PNG 为 tensor 并返回中文摘要。
-- [ ] 运行全部单测并提交 `feat: register qlib mvp nodes and reports`。
+文件：`src/ty_quant_node/nodes.py`、`examples/mvp_workflow.json`。
 
-### Task 7: 文档、示例与真实环境验证
+- [x] 实现数据、Qlib、模型、回测和报告节点的 INPUT/OUTPUT 契约。
+- [x] 固定 fixture 节点测试覆盖导出 -> DatasetH -> 训练 -> 预测 -> 回测 -> 报告。
+- [x] 报告节点标记 `OUTPUT_NODE=True`，可被 ComfyUI `/prompt` 执行。
 
-**Files:** Create `ty-quant-node/examples/mvp_workflow.json`, `ty-quant-node/tests/test_e2e_fixture.py`; Modify `README.md`.
+### 任务 7：验证、联调和发布
 
-- [ ] 编写离线端到端测试，从 fixture 运行七节点闭环并断言报告文件存在。
-- [ ] 加入 junction 命令、Qlib 数据目录配置、缓存清理、ComfyUI 重启说明和示例 workflow。
-- [ ] 运行 `uv run pytest ty-quant-node/tests -q`；在 ComfyUI 建立 junction 后重启后端，确认节点可搜索并执行示例。
-- [ ] 提交 `docs: document qlib comfyui mvp usage`。
+文件：`tests/`、`tests/fixtures/market.csv`、`README.md`。
 
+- [x] `uv lock --check`、`uv sync --locked`、`uv run pytest ty-quant-node/tests -q` 通过。
+- [x] 建立 `E:\ComfyUI_windows_portable-G314\ComfyUI\custom_nodes\ty-quant-node` junction。
+- [x] 重启真实 ComfyUI，`/object_info` 发现全部节点，API fixture workflow 返回 `execution_success` 并生成报告文件。
+- [x] 创建并推送公开 GitHub 仓库 `https://github.com/yuanyuli/ty-quant-node` 的 `master` 分支。
+
+## 验收命令
+
+```powershell
+cd D:\work_station\ty-comfyui-node
+uv lock --check
+uv sync --locked
+uv run pytest ty-quant-node/tests -q
+```
+
+验收通过标准是所有测试通过，且 ComfyUI API workflow 返回 `status_str=success`、`completed=true`，artifact 目录包含 provider manifest、模型文件、回测 metrics 和 RGB equity PNG。

@@ -1,11 +1,12 @@
 import importlib
-from ty_quant_node.nodes import QlibRuntime, QlibReport
+from ty_quant_node.nodes import QlibControl, QlibRuntime, QlibReport
 
 
 def test_comfyui_root_registers_full_node_group():
     module = importlib.import_module("ty_quant_node")
     expected = {
         "TushareConfig",
+        "QlibControl",
         "QlibRuntime",
         "TushareDailyFetch",
         "AdjustPrices",
@@ -31,3 +32,8 @@ def test_runtime_node_initializes_qlib(tmp_path):
 
 def test_report_is_comfyui_output_node():
     assert QlibReport.OUTPUT_NODE is True
+
+
+def test_control_node_is_registered_with_optional_fanout_contract():
+    assert "QLIB_CONTROL" in QlibControl.RETURN_TYPES
+    assert QlibControl.INPUT_TYPES()["required"]["csv_path"][0] == "STRING"

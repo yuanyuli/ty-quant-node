@@ -15,6 +15,7 @@ class Handle:
 
     KNOWN_KINDS: ClassVar[frozenset[str]] = frozenset(
         {
+            "QLIB_CONTROL",
             "QLIB_RUNTIME",
             "TUSHARE_CONFIG",
             "MARKET_DATA",

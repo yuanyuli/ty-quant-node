@@ -1,14 +1,915 @@
 {
-  "last_node_id": 7,
-  "last_link_id": 7,
+  "id": "5d91bce2-2dd4-4b64-9d1c-25bda1d0c001",
+  "revision": 0,
+  "last_node_id": 8,
+  "last_link_id": 14,
   "nodes": [
-    {"id": 1, "type": "QlibExport", "pos": [40, 80], "size": [320, 120], "outputs": [{"name": "QLIB_EXPORT", "type": "QLIB_EXPORT", "links": [1]}], "widgets_values": ["tests/fixtures/market.csv", "qfq", "outputs/ty_quant/provider"]},
-    {"id": 2, "type": "QlibDataset", "pos": [420, 80], "size": [340, 160], "inputs": [{"name": "export", "type": "QLIB_EXPORT", "link": 1}], "outputs": [{"name": "QLIB_DATASET", "type": "QLIB_DATASET", "links": [2, 5]}], "widgets_values": ["2024-01-01", "2024-01-03", "2024-01-04", "2024-01-06"]},
-    {"id": 3, "type": "QlibModel", "pos": [40, 300], "size": [320, 100], "outputs": [{"name": "QLIB_MODEL_SPEC", "type": "QLIB_MODEL_SPEC", "links": [3]}], "widgets_values": ["linear", "{}"]},
-    {"id": 4, "type": "QlibTrain", "pos": [820, 80], "size": [340, 140], "inputs": [{"name": "dataset", "type": "QLIB_DATASET", "link": 2}, {"name": "model", "type": "QLIB_MODEL_SPEC", "link": 3}], "outputs": [{"name": "QLIB_TRAINED_MODEL", "type": "QLIB_TRAINED_MODEL", "links": [4]}], "widgets_values": ["outputs/ty_quant/model"]},
-    {"id": 5, "type": "QlibPredict", "pos": [1220, 80], "size": [340, 120], "inputs": [{"name": "trained_model", "type": "QLIB_TRAINED_MODEL", "link": 4}, {"name": "dataset", "type": "QLIB_DATASET", "link": 5}], "outputs": [{"name": "QLIB_SIGNAL_TABLE", "type": "QLIB_SIGNAL_TABLE", "links": [6]}], "widgets_values": ["test"]},
-    {"id": 6, "type": "QlibBacktest", "pos": [1620, 80], "size": [340, 140], "inputs": [{"name": "signal", "type": "QLIB_SIGNAL_TABLE", "link": 6}], "outputs": [{"name": "QLIB_BACKTEST_RESULT", "type": "QLIB_BACKTEST_RESULT", "links": [7]}], "widgets_values": [1, 0, 5.0]},
-    {"id": 7, "type": "QlibReport", "pos": [2020, 80], "size": [340, 140], "inputs": [{"name": "backtest_result", "type": "QLIB_BACKTEST_RESULT", "link": 7}], "outputs": [{"name": "IMAGE", "type": "IMAGE"}], "widgets_values": ["outputs/ty_quant/report"]}
+    {
+      "id": 1,
+      "type": "QlibControl",
+      "pos": [
+        0,
+        0
+      ],
+      "size": [
+        520,
+        760
+      ],
+      "flags": {
+        "pinned": true
+      },
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "csv_path",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "csv_path"
+          }
+        },
+        {
+          "name": "adjustment",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "adjustment"
+          }
+        },
+        {
+          "name": "output_root",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "output_root"
+          }
+        },
+        {
+          "name": "train_start",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "train_start"
+          }
+        },
+        {
+          "name": "train_end",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "train_end"
+          }
+        },
+        {
+          "name": "test_start",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "test_start"
+          }
+        },
+        {
+          "name": "test_end",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "test_end"
+          }
+        },
+        {
+          "name": "model_type",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "model_type"
+          }
+        },
+        {
+          "name": "params_json",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "params_json"
+          }
+        },
+        {
+          "name": "artifact_dir",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "artifact_dir"
+          }
+        },
+        {
+          "name": "segment",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "segment"
+          }
+        },
+        {
+          "name": "topk",
+          "type": "INT",
+          "link": null,
+          "widget": {
+            "name": "topk"
+          }
+        },
+        {
+          "name": "n_drop",
+          "type": "INT",
+          "link": null,
+          "widget": {
+            "name": "n_drop"
+          }
+        },
+        {
+          "name": "transaction_cost_bps",
+          "type": "FLOAT",
+          "link": null,
+          "widget": {
+            "name": "transaction_cost_bps"
+          }
+        },
+        {
+          "name": "report_dir",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "report_dir"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "QLIB_CONTROL",
+          "type": "QLIB_CONTROL",
+          "slot_index": 0,
+          "links": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ]
+        }
+      ],
+      "title": "TY Quant 控制台",
+      "properties": {
+        "cnr_id": "ty-quant-node",
+        "ver": "0.1.0",
+        "Node name for S&R": "QlibControl"
+      },
+      "widgets_values": [
+        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\tests\\fixtures\\market.csv",
+        "qfq",
+        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\comfyui-mvp\\provider",
+        "2024-01-01",
+        "2024-01-03",
+        "2024-01-04",
+        "2024-01-06",
+        "linear",
+        "{}",
+        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\comfyui-mvp\\model",
+        "test",
+        1,
+        0,
+        5.0,
+        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\comfyui-mvp\\report"
+      ],
+      "widgets_values_named": {
+        "csv_path": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\tests\\fixtures\\market.csv",
+        "adjustment": "qfq",
+        "output_root": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\comfyui-mvp\\provider",
+        "train_start": "2024-01-01",
+        "train_end": "2024-01-03",
+        "test_start": "2024-01-04",
+        "test_end": "2024-01-06",
+        "model_type": "linear",
+        "params_json": "{}",
+        "artifact_dir": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\comfyui-mvp\\model",
+        "segment": "test",
+        "topk": 1,
+        "n_drop": 0,
+        "transaction_cost_bps": 5.0,
+        "report_dir": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\comfyui-mvp\\report"
+      },
+      "color": "#16727c",
+      "bgcolor": "#4f0074"
+    },
+    {
+      "id": 2,
+      "type": "QlibExport",
+      "pos": [
+        640,
+        70
+      ],
+      "size": [
+        420,
+        220
+      ],
+      "flags": {
+        "pinned": true
+      },
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "csv_path",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "csv_path"
+          }
+        },
+        {
+          "name": "adjustment",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "adjustment"
+          }
+        },
+        {
+          "name": "output_dir",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "output_dir"
+          }
+        },
+        {
+          "name": "control",
+          "type": "QLIB_CONTROL",
+          "link": 1,
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "QLIB_EXPORT",
+          "type": "QLIB_EXPORT",
+          "slot_index": 0,
+          "links": [
+            8
+          ]
+        }
+      ],
+      "title": "数据导出与复权",
+      "properties": {
+        "cnr_id": "ty-quant-node",
+        "ver": "0.1.0",
+        "Node name for S&R": "QlibExport"
+      },
+      "widgets_values": [
+        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\tests\\fixtures\\market.csv",
+        "qfq",
+        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\comfyui-mvp\\provider"
+      ],
+      "widgets_values_named": {
+        "csv_path": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\tests\\fixtures\\market.csv",
+        "adjustment": "qfq",
+        "output_dir": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\comfyui-mvp\\provider"
+      },
+      "color": "#356b8c",
+      "bgcolor": "#254b63"
+    },
+    {
+      "id": 3,
+      "type": "QlibDataset",
+      "pos": [
+        1140,
+        70
+      ],
+      "size": [
+        420,
+        260
+      ],
+      "flags": {
+        "pinned": true
+      },
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "export",
+          "type": "QLIB_EXPORT",
+          "link": 8,
+          "shape": 7
+        },
+        {
+          "name": "train_start",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "train_start"
+          }
+        },
+        {
+          "name": "train_end",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "train_end"
+          }
+        },
+        {
+          "name": "test_start",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "test_start"
+          }
+        },
+        {
+          "name": "test_end",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "test_end"
+          }
+        },
+        {
+          "name": "control",
+          "type": "QLIB_CONTROL",
+          "link": 2,
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "QLIB_DATASET",
+          "type": "QLIB_DATASET",
+          "slot_index": 0,
+          "links": [
+            9,
+            12
+          ]
+        }
+      ],
+      "title": "Dataset 时间切分",
+      "properties": {
+        "cnr_id": "ty-quant-node",
+        "ver": "0.1.0",
+        "Node name for S&R": "QlibDataset"
+      },
+      "widgets_values": [
+        "2024-01-01",
+        "2024-01-03",
+        "2024-01-04",
+        "2024-01-06"
+      ],
+      "widgets_values_named": {
+        "train_start": "2024-01-01",
+        "train_end": "2024-01-03",
+        "test_start": "2024-01-04",
+        "test_end": "2024-01-06"
+      },
+      "color": "#356b8c",
+      "bgcolor": "#254b63"
+    },
+    {
+      "id": 4,
+      "type": "QlibModel",
+      "pos": [
+        640,
+        390
+      ],
+      "size": [
+        420,
+        190
+      ],
+      "flags": {
+        "pinned": true
+      },
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model_type",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "model_type"
+          }
+        },
+        {
+          "name": "params_json",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "params_json"
+          }
+        },
+        {
+          "name": "control",
+          "type": "QLIB_CONTROL",
+          "link": 3,
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "QLIB_MODEL_SPEC",
+          "type": "QLIB_MODEL_SPEC",
+          "slot_index": 0,
+          "links": [
+            10
+          ]
+        }
+      ],
+      "title": "模型配置",
+      "properties": {
+        "cnr_id": "ty-quant-node",
+        "ver": "0.1.0",
+        "Node name for S&R": "QlibModel"
+      },
+      "widgets_values": [
+        "linear",
+        "{}"
+      ],
+      "widgets_values_named": {
+        "model_type": "linear",
+        "params_json": "{}"
+      },
+      "color": "#6d5a35",
+      "bgcolor": "#4d3f26"
+    },
+    {
+      "id": 5,
+      "type": "QlibTrain",
+      "pos": [
+        1640,
+        70
+      ],
+      "size": [
+        420,
+        260
+      ],
+      "flags": {
+        "pinned": true
+      },
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "dataset",
+          "type": "QLIB_DATASET",
+          "link": 9,
+          "shape": 7
+        },
+        {
+          "name": "model",
+          "type": "QLIB_MODEL_SPEC",
+          "link": 10,
+          "shape": 7
+        },
+        {
+          "name": "artifact_dir",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "artifact_dir"
+          }
+        },
+        {
+          "name": "control",
+          "type": "QLIB_CONTROL",
+          "link": 4,
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "QLIB_TRAINED_MODEL",
+          "type": "QLIB_TRAINED_MODEL",
+          "slot_index": 0,
+          "links": [
+            11
+          ]
+        },
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "slot_index": 1,
+          "links": null
+        }
+      ],
+      "title": "模型训练",
+      "properties": {
+        "cnr_id": "ty-quant-node",
+        "ver": "0.1.0",
+        "Node name for S&R": "QlibTrain"
+      },
+      "widgets_values": [
+        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\comfyui-mvp\\model"
+      ],
+      "widgets_values_named": {
+        "artifact_dir": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\comfyui-mvp\\model"
+      },
+      "color": "#6d5a35",
+      "bgcolor": "#4d3f26"
+    },
+    {
+      "id": 6,
+      "type": "QlibPredict",
+      "pos": [
+        2140,
+        70
+      ],
+      "size": [
+        420,
+        220
+      ],
+      "flags": {
+        "pinned": true
+      },
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "trained_model",
+          "type": "QLIB_TRAINED_MODEL",
+          "link": 11,
+          "shape": 7
+        },
+        {
+          "name": "dataset",
+          "type": "QLIB_DATASET",
+          "link": 12,
+          "shape": 7
+        },
+        {
+          "name": "segment",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "segment"
+          }
+        },
+        {
+          "name": "control",
+          "type": "QLIB_CONTROL",
+          "link": 5,
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "QLIB_SIGNAL_TABLE",
+          "type": "QLIB_SIGNAL_TABLE",
+          "slot_index": 0,
+          "links": [
+            13
+          ]
+        }
+      ],
+      "title": "信号预测",
+      "properties": {
+        "cnr_id": "ty-quant-node",
+        "ver": "0.1.0",
+        "Node name for S&R": "QlibPredict"
+      },
+      "widgets_values": [
+        "test"
+      ],
+      "widgets_values_named": {
+        "segment": "test"
+      },
+      "color": "#6d5a35",
+      "bgcolor": "#4d3f26"
+    },
+    {
+      "id": 7,
+      "type": "QlibBacktest",
+      "pos": [
+        2640,
+        70
+      ],
+      "size": [
+        440,
+        260
+      ],
+      "flags": {
+        "pinned": true
+      },
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "signal",
+          "type": "QLIB_SIGNAL_TABLE",
+          "link": 13,
+          "shape": 7
+        },
+        {
+          "name": "topk",
+          "type": "INT",
+          "link": null,
+          "widget": {
+            "name": "topk"
+          }
+        },
+        {
+          "name": "n_drop",
+          "type": "INT",
+          "link": null,
+          "widget": {
+            "name": "n_drop"
+          }
+        },
+        {
+          "name": "transaction_cost_bps",
+          "type": "FLOAT",
+          "link": null,
+          "widget": {
+            "name": "transaction_cost_bps"
+          }
+        },
+        {
+          "name": "control",
+          "type": "QLIB_CONTROL",
+          "link": 6,
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "QLIB_BACKTEST_RESULT",
+          "type": "QLIB_BACKTEST_RESULT",
+          "slot_index": 0,
+          "links": [
+            14
+          ]
+        },
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "slot_index": 1,
+          "links": null
+        }
+      ],
+      "title": "TopK 回测",
+      "properties": {
+        "cnr_id": "ty-quant-node",
+        "ver": "0.1.0",
+        "Node name for S&R": "QlibBacktest"
+      },
+      "widgets_values": [
+        1,
+        0,
+        5.0
+      ],
+      "widgets_values_named": {
+        "topk": 1,
+        "n_drop": 0,
+        "transaction_cost_bps": 5.0
+      },
+      "color": "#794c36",
+      "bgcolor": "#593827"
+    },
+    {
+      "id": 8,
+      "type": "QlibReport",
+      "pos": [
+        3160,
+        70
+      ],
+      "size": [
+        440,
+        300
+      ],
+      "flags": {
+        "pinned": true
+      },
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "backtest_result",
+          "type": "QLIB_BACKTEST_RESULT",
+          "link": 14,
+          "shape": 7
+        },
+        {
+          "name": "output_dir",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "output_dir"
+          }
+        },
+        {
+          "name": "control",
+          "type": "QLIB_CONTROL",
+          "link": 7,
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "slot_index": 0,
+          "links": null
+        },
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "slot_index": 1,
+          "links": null
+        },
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "slot_index": 2,
+          "links": null
+        }
+      ],
+      "title": "回测报告",
+      "properties": {
+        "cnr_id": "ty-quant-node",
+        "ver": "0.1.0",
+        "Node name for S&R": "QlibReport"
+      },
+      "widgets_values": [
+        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\comfyui-mvp\\report"
+      ],
+      "widgets_values_named": {
+        "output_dir": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\comfyui-mvp\\report"
+      },
+      "color": "#794c36",
+      "bgcolor": "#593827"
+    }
   ],
-  "links": [[1, 1, 0, 2, 0, "QLIB_EXPORT"], [2, 2, 0, 4, 0, "QLIB_DATASET"], [3, 3, 0, 4, 1, "QLIB_MODEL_SPEC"], [4, 4, 0, 5, 0, "QLIB_TRAINED_MODEL"], [5, 2, 0, 5, 1, "QLIB_DATASET"], [6, 5, 0, 6, 0, "QLIB_SIGNAL_TABLE"], [7, 6, 0, 7, 0, "QLIB_BACKTEST_RESULT"]]
+  "links": [
+    [
+      1,
+      1,
+      0,
+      2,
+      3,
+      "QLIB_CONTROL"
+    ],
+    [
+      2,
+      1,
+      0,
+      3,
+      5,
+      "QLIB_CONTROL"
+    ],
+    [
+      3,
+      1,
+      0,
+      4,
+      2,
+      "QLIB_CONTROL"
+    ],
+    [
+      4,
+      1,
+      0,
+      5,
+      3,
+      "QLIB_CONTROL"
+    ],
+    [
+      5,
+      1,
+      0,
+      6,
+      3,
+      "QLIB_CONTROL"
+    ],
+    [
+      6,
+      1,
+      0,
+      7,
+      4,
+      "QLIB_CONTROL"
+    ],
+    [
+      7,
+      1,
+      0,
+      8,
+      2,
+      "QLIB_CONTROL"
+    ],
+    [
+      8,
+      2,
+      0,
+      3,
+      0,
+      "QLIB_EXPORT"
+    ],
+    [
+      9,
+      3,
+      0,
+      5,
+      0,
+      "QLIB_DATASET"
+    ],
+    [
+      10,
+      4,
+      0,
+      5,
+      1,
+      "QLIB_MODEL_SPEC"
+    ],
+    [
+      11,
+      5,
+      0,
+      6,
+      0,
+      "QLIB_TRAINED_MODEL"
+    ],
+    [
+      12,
+      3,
+      0,
+      6,
+      1,
+      "QLIB_DATASET"
+    ],
+    [
+      13,
+      6,
+      0,
+      7,
+      0,
+      "QLIB_SIGNAL_TABLE"
+    ],
+    [
+      14,
+      7,
+      0,
+      8,
+      0,
+      "QLIB_BACKTEST_RESULT"
+    ]
+  ],
+  "groups": [
+    {
+      "title": "TY Quant 控制台",
+      "bounding": [
+        -20,
+        -20,
+        580,
+        820
+      ],
+      "color": "#3f789e",
+      "font_size": 24
+    },
+    {
+      "title": "数据准备与复权",
+      "bounding": [
+        610,
+        20,
+        1000,
+        640
+      ],
+      "color": "#3f789e",
+      "font_size": 24
+    },
+    {
+      "title": "模型训练与预测",
+      "bounding": [
+        1610,
+        20,
+        1000,
+        640
+      ],
+      "color": "#7f704b",
+      "font_size": 24
+    },
+    {
+      "title": "回测与报告",
+      "bounding": [
+        2610,
+        20,
+        1040,
+        640
+      ],
+      "color": "#8c573b",
+      "font_size": 24
+    }
+  ],
+  "config": {},
+  "extra": {
+    "workflow_name": "TY Quant Qlib MVP",
+    "description": "H3 导演工作台式的 Qlib 日线复权、训练、预测、回测和报告闭环。"
+  },
+  "version": 0.4
 }

@@ -18,6 +18,20 @@ def _handle(value) -> Handle:
     return value if isinstance(value, Handle) else Handle.from_dict(value)
 
 
+def _control_values(value) -> dict:
+    if value is None:
+        return {}
+    control = _handle(value)
+    if control.kind != "QLIB_CONTROL":
+        raise ValueError(f"control 输入类型错误: {control.kind}")
+    return dict(control.metadata)
+
+
+def _controlled(values: dict, key: str, fallback):
+    value = values.get(key, fallback)
+    return fallback if value in (None, "") else value
+
+
 class TushareConfig:
     @classmethod
     def INPUT_TYPES(cls):
@@ -29,6 +43,78 @@ class TushareConfig:
 
     def run(self, token_source="environment", retries=3):
         return (Handle("TUSHARE_CONFIG", "", metadata={"token_source": token_source, "retries": int(retries)}).to_dict(),)
+
+
+class QlibControl:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "csv_path": ("STRING", {"default": ""}),
+                "adjustment": (["qfq", "hfq", "none"],),
+                "output_root": ("STRING", {"default": "outputs/ty_quant"}),
+                "train_start": ("STRING", {"default": ""}),
+                "train_end": ("STRING", {"default": ""}),
+                "test_start": ("STRING", {"default": ""}),
+                "test_end": ("STRING", {"default": ""}),
+                "model_type": (["linear", "lightgbm"],),
+                "params_json": ("STRING", {"default": "{}"}),
+                "artifact_dir": ("STRING", {"default": "outputs/ty_quant/model"}),
+                "segment": (["train", "valid", "test"],),
+                "topk": ("INT", {"default": 1, "min": 1}),
+                "n_drop": ("INT", {"default": 0, "min": 0}),
+                "transaction_cost_bps": ("FLOAT", {"default": 5.0, "min": 0.0}),
+                "report_dir": ("STRING", {"default": "outputs/ty_quant/report"}),
+            }
+        }
+
+    RETURN_TYPES = ("QLIB_CONTROL",)
+    FUNCTION = "run"
+    CATEGORY = "TY Quant/Control"
+
+    def run(
+        self,
+        csv_path,
+        adjustment,
+        output_root,
+        train_start,
+        train_end,
+        test_start,
+        test_end,
+        model_type,
+        params_json,
+        artifact_dir,
+        segment,
+        topk=1,
+        n_drop=0,
+        transaction_cost_bps=5.0,
+        report_dir="",
+    ):
+        try:
+            params = json.loads(params_json or "{}")
+        except json.JSONDecodeError as exc:
+            raise RuntimeError("QlibControl 参数 JSON 无效") from exc
+        if not isinstance(params, dict):
+            raise RuntimeError("QlibControl 参数 JSON 必须是对象")
+        metadata = {
+            "csv_path": str(csv_path),
+            "adjustment": str(adjustment),
+            "output_root": str(output_root),
+            "train_start": str(train_start),
+            "train_end": str(train_end),
+            "test_start": str(test_start),
+            "test_end": str(test_end),
+            "model_type": str(model_type),
+            "params_json": json.dumps(params, ensure_ascii=False, sort_keys=True),
+            "params": params,
+            "artifact_dir": str(artifact_dir),
+            "segment": str(segment),
+            "topk": int(topk),
+            "n_drop": int(n_drop),
+            "transaction_cost_bps": float(transaction_cost_bps),
+            "report_dir": str(report_dir),
+        }
+        return (Handle("QLIB_CONTROL", "", metadata=metadata).to_dict(),)
 
 
 class QlibRuntime:
@@ -94,26 +180,51 @@ class AdjustPrices:
 class QlibExport:
     @classmethod
     def INPUT_TYPES(cls):
-        return {"required": {"csv_path": ("STRING", {"default": ""}), "adjustment": (["qfq", "hfq", "none"],), "output_dir": ("STRING", {"default": "outputs/ty_quant/provider"})}}
+        return {
+            "required": {
+                "csv_path": ("STRING", {"default": ""}),
+                "adjustment": (["qfq", "hfq", "none"],),
+                "output_dir": ("STRING", {"default": "outputs/ty_quant/provider"}),
+            },
+            "optional": {"control": ("QLIB_CONTROL",)},
+        }
 
     RETURN_TYPES = ("QLIB_EXPORT",)
     FUNCTION = "run"
     CATEGORY = "TY Quant/Qlib"
 
-    def run(self, csv_path, adjustment, output_dir):
+    def run(self, csv_path, adjustment, output_dir, control=None):
+        values = _control_values(control)
+        csv_path = _controlled(values, "csv_path", csv_path)
+        adjustment = _controlled(values, "adjustment", adjustment)
+        output_dir = _controlled(values, "output_root", output_dir)
         return (export_qlib(pd.read_csv(csv_path), output_dir, adjustment=adjustment).to_dict(),)
 
 
 class QlibDataset:
     @classmethod
     def INPUT_TYPES(cls):
-        return {"required": {"export": ("QLIB_EXPORT",), "train_start": ("STRING", {"default": ""}), "train_end": ("STRING", {"default": ""}), "test_start": ("STRING", {"default": ""}), "test_end": ("STRING", {"default": ""})}}
+        return {
+            "required": {
+                "export": ("QLIB_EXPORT",),
+                "train_start": ("STRING", {"default": ""}),
+                "train_end": ("STRING", {"default": ""}),
+                "test_start": ("STRING", {"default": ""}),
+                "test_end": ("STRING", {"default": ""}),
+            },
+            "optional": {"control": ("QLIB_CONTROL",)},
+        }
 
     RETURN_TYPES = ("QLIB_DATASET",)
     FUNCTION = "run"
     CATEGORY = "TY Quant/Qlib"
 
-    def run(self, export, train_start="", train_end="", test_start="", test_end=""):
+    def run(self, export, train_start="", train_end="", test_start="", test_end="", control=None):
+        values = _control_values(control)
+        train_start = _controlled(values, "train_start", train_start)
+        train_end = _controlled(values, "train_end", train_end)
+        test_start = _controlled(values, "test_start", test_start)
+        test_end = _controlled(values, "test_end", test_end)
         handle = _handle(export)
         segments = None
         if train_start and train_end and test_start and test_end:
@@ -124,30 +235,44 @@ class QlibDataset:
 class QlibModel:
     @classmethod
     def INPUT_TYPES(cls):
-        return {"required": {"model_type": (["linear", "lightgbm"],), "params_json": ("STRING", {"default": "{}"})}}
+        return {
+            "required": {"model_type": (["linear", "lightgbm"],), "params_json": ("STRING", {"default": "{}"})},
+            "optional": {"control": ("QLIB_CONTROL",)},
+        }
 
     RETURN_TYPES = ("QLIB_MODEL_SPEC",)
     FUNCTION = "run"
     CATEGORY = "TY Quant/Model"
 
-    def run(self, model_type, params_json="{}"):
-        try:
-            params = json.loads(params_json or "{}")
-        except json.JSONDecodeError as exc:
-            raise RuntimeError("QlibModel 参数 JSON 无效") from exc
+    def run(self, model_type, params_json="{}", control=None):
+        values = _control_values(control)
+        model_type = _controlled(values, "model_type", model_type)
+        params = values.get("params")
+        if params is None:
+            try:
+                params = json.loads(params_json or "{}")
+            except json.JSONDecodeError as exc:
+                raise RuntimeError("QlibModel 参数 JSON 无效") from exc
+        if not isinstance(params, dict):
+            raise RuntimeError("QlibModel 参数 JSON 必须是对象")
         return (Handle("QLIB_MODEL_SPEC", "", metadata={"model_type": ModelSpec(model_type, params).model_type, "params": params}).to_dict(),)
 
 
 class QlibTrain:
     @classmethod
     def INPUT_TYPES(cls):
-        return {"required": {"dataset": ("QLIB_DATASET",), "model": ("QLIB_MODEL_SPEC",), "artifact_dir": ("STRING", {"default": "outputs/ty_quant/model"})}}
+        return {
+            "required": {"dataset": ("QLIB_DATASET",), "model": ("QLIB_MODEL_SPEC",), "artifact_dir": ("STRING", {"default": "outputs/ty_quant/model"})},
+            "optional": {"control": ("QLIB_CONTROL",)},
+        }
 
     RETURN_TYPES = ("QLIB_TRAINED_MODEL", "STRING")
     FUNCTION = "run"
     CATEGORY = "TY Quant/Model"
 
-    def run(self, dataset, model, artifact_dir):
+    def run(self, dataset, model, artifact_dir, control=None):
+        values = _control_values(control)
+        artifact_dir = _controlled(values, "artifact_dir", artifact_dir)
         dataset_handle, model_handle = _handle(dataset), _handle(model)
         bundle = build_dataset_from_export(dataset_handle.path, segments=dataset_handle.metadata.get("segments"))
         spec = ModelSpec(model_handle.metadata["model_type"], model_handle.metadata.get("params", {}))
@@ -159,13 +284,18 @@ class QlibTrain:
 class QlibPredict:
     @classmethod
     def INPUT_TYPES(cls):
-        return {"required": {"trained_model": ("QLIB_TRAINED_MODEL",), "dataset": ("QLIB_DATASET",), "segment": (["train", "valid", "test"],)}}
+        return {
+            "required": {"trained_model": ("QLIB_TRAINED_MODEL",), "dataset": ("QLIB_DATASET",), "segment": (["train", "valid", "test"],)},
+            "optional": {"control": ("QLIB_CONTROL",)},
+        }
 
     RETURN_TYPES = ("QLIB_SIGNAL_TABLE",)
     FUNCTION = "run"
     CATEGORY = "TY Quant/Model"
 
-    def run(self, trained_model, dataset, segment):
+    def run(self, trained_model, dataset, segment, control=None):
+        values = _control_values(control)
+        segment = _controlled(values, "segment", segment)
         model_handle, dataset_handle = _handle(trained_model), _handle(dataset)
         bundle = build_dataset_from_export(dataset_handle.path, segments=dataset_handle.metadata.get("segments"))
         signal = predict_model(load_model(model_handle), bundle, segment)
@@ -177,13 +307,20 @@ class QlibPredict:
 class QlibBacktest:
     @classmethod
     def INPUT_TYPES(cls):
-        return {"required": {"signal": ("QLIB_SIGNAL_TABLE",), "topk": ("INT", {"default": 1, "min": 1}), "n_drop": ("INT", {"default": 0, "min": 0}), "transaction_cost_bps": ("FLOAT", {"default": 5.0, "min": 0.0})}}
+        return {
+            "required": {"signal": ("QLIB_SIGNAL_TABLE",), "topk": ("INT", {"default": 1, "min": 1}), "n_drop": ("INT", {"default": 0, "min": 0}), "transaction_cost_bps": ("FLOAT", {"default": 5.0, "min": 0.0})},
+            "optional": {"control": ("QLIB_CONTROL",)},
+        }
 
     RETURN_TYPES = ("QLIB_BACKTEST_RESULT", "STRING")
     FUNCTION = "run"
     CATEGORY = "TY Quant/Backtest"
 
-    def run(self, signal, topk=1, n_drop=0, transaction_cost_bps=5.0):
+    def run(self, signal, topk=1, n_drop=0, transaction_cost_bps=5.0, control=None):
+        values = _control_values(control)
+        topk = _controlled(values, "topk", topk)
+        n_drop = _controlled(values, "n_drop", n_drop)
+        transaction_cost_bps = _controlled(values, "transaction_cost_bps", transaction_cost_bps)
         signal_handle = _handle(signal)
         table = pd.read_parquet(signal_handle.path)
         result = backtest(table, topk=int(topk), n_drop=int(n_drop), transaction_cost_bps=float(transaction_cost_bps))
@@ -198,14 +335,19 @@ class QlibBacktest:
 class QlibReport:
     @classmethod
     def INPUT_TYPES(cls):
-        return {"required": {"backtest_result": ("QLIB_BACKTEST_RESULT",), "output_dir": ("STRING", {"default": "outputs/ty_quant/report"})}}
+        return {
+            "required": {"backtest_result": ("QLIB_BACKTEST_RESULT",), "output_dir": ("STRING", {"default": "outputs/ty_quant/report"})},
+            "optional": {"control": ("QLIB_CONTROL",)},
+        }
 
     RETURN_TYPES = ("STRING", "IMAGE", "STRING")
     OUTPUT_NODE = True
     FUNCTION = "run"
     CATEGORY = "TY Quant/Report"
 
-    def run(self, backtest_result, output_dir):
+    def run(self, backtest_result, output_dir, control=None):
+        values = _control_values(control)
+        output_dir = _controlled(values, "report_dir", output_dir)
         handle = _handle(backtest_result)
         metrics = json.loads((Path(handle.path) / "metrics.json").read_text(encoding="utf-8"))
         equity = pd.read_csv(Path(handle.path) / "equity.csv")
@@ -221,6 +363,7 @@ TYQuantBacktest = QlibBacktest
 TYQuantReport = QlibReport
 
 NODE_CLASS_MAPPINGS = {
+    "QlibControl": QlibControl,
     "QlibRuntime": QlibRuntime,
     "TushareConfig": TushareConfig,
     "TushareDailyFetch": TushareDailyFetch,

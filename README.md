@@ -12,7 +12,9 @@ TushareConfig / 本地 CSV
     -> QlibBacktest -> QlibReport
 ```
 
-当前节点：`QlibRuntime`、`TushareConfig`、`TushareDailyFetch`、`AdjustPrices`、`QlibExport`、`QlibDataset`、`QlibModel`、`QlibTrain`、`QlibPredict`、`QlibBacktest`、`QlibReport`。
+当前节点：`QlibControl`、`QlibRuntime`、`TushareConfig`、`TushareDailyFetch`、`AdjustPrices`、`QlibExport`、`QlibDataset`、`QlibModel`、`QlibTrain`、`QlibPredict`、`QlibBacktest`、`QlibReport`。
+
+`QlibControl` 是 H3 导演工作台风格的总控节点。它集中保存 CSV 路径、复权方式、训练/测试区间、模型参数、回测参数和报告目录，再通过 `QLIB_CONTROL` 句柄扇出到各阶段节点。各阶段仍然独立执行，便于替换数据源或定位问题。
 
 节点之间传递的是带 `kind/version/path/metadata` 的轻量句柄，行情表、模型文件和净值曲线写入本地 artifact 目录，不塞进 workflow JSON。
 
@@ -63,7 +65,9 @@ $env:TUSHARE_TOKEN = "你的 token"
 cmd /c mklink /J "E:\ComfyUI_windows_portable-G314\ComfyUI\custom_nodes\ty-quant-node" "D:\work_station\ty-comfyui-node\ty-quant-node"
 ```
 
-重启 ComfyUI 后端，搜索 `TY Quant` 节点；修改 Python 后重新启动后端，修改前端资源后刷新浏览器。示例 workflow 位于 `examples/mvp_workflow.json`，固定输入位于 `tests/fixtures/market.csv`。
+重启 ComfyUI 后端，搜索 `TY Quant` 节点；修改 Python 后重新启动后端，修改前端资源后刷新浏览器。示例 workflow 位于 `examples/mvp_workflow.json`，固定输入位于 `tests/fixtures/market.csv`。工作流使用完整 ComfyUI 0.4 编辑器格式，包含 `TY Quant 控制台`、数据准备、模型训练和回测报告四个分组；本地安装副本位于 `E:\ComfyUI_windows_portable-G314\ComfyUI\user\default\workflows\ty-qlib\mvp_workflow.json`。
+
+工作流结构由 `src/ty_quant_node/workflow.py` 生成和校验。独立验证使用 `uv run pytest ty-quant-node/tests -q`；真实 ComfyUI 联调将生成 `.artifacts/comfyui-mvp/provider`、`.artifacts/comfyui-mvp/model` 和 `.artifacts/comfyui-mvp/report/equity.png`。
 
 ## 代码结构
 

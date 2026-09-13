@@ -1,0 +1,488 @@
+{
+  "id": "5d91bce2-2dd4-4b64-9d1c-25bda1d0c004",
+  "revision": 0,
+  "last_node_id": 4,
+  "last_link_id": 3,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "TushareProvider",
+      "pos": [
+        0,
+        0
+      ],
+      "size": [
+        460,
+        360
+      ],
+      "flags": {
+        "pinned": false
+      },
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "token_source",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "token_source"
+          }
+        },
+        {
+          "name": "token_env_name",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "token_env_name"
+          }
+        },
+        {
+          "name": "api_profile",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "api_profile"
+          }
+        },
+        {
+          "name": "ts_codes",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "ts_codes"
+          }
+        },
+        {
+          "name": "query_start",
+          "type": "TY_DATE",
+          "link": null,
+          "widget": {
+            "name": "query_start"
+          }
+        },
+        {
+          "name": "query_end",
+          "type": "TY_DATE",
+          "link": null,
+          "widget": {
+            "name": "query_end"
+          }
+        },
+        {
+          "name": "snapshot_dir",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "snapshot_dir"
+          }
+        },
+        {
+          "name": "incremental",
+          "type": "BOOLEAN",
+          "link": null,
+          "widget": {
+            "name": "incremental"
+          }
+        },
+        {
+          "name": "retries",
+          "type": "INT",
+          "link": null,
+          "widget": {
+            "name": "retries"
+          }
+        },
+        {
+          "name": "max_codes_per_request",
+          "type": "INT",
+          "link": null,
+          "widget": {
+            "name": "max_codes_per_request"
+          }
+        },
+        {
+          "name": "max_days_per_request",
+          "type": "INT",
+          "link": null,
+          "widget": {
+            "name": "max_days_per_request"
+          }
+        },
+        {
+          "name": "control",
+          "type": "QLIB_CONTROL",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MARKET_DATA",
+          "type": "MARKET_DATA",
+          "slot_index": 0,
+          "links": [
+            1,
+            2
+          ]
+        }
+      ],
+      "title": "1. Tushare 数据源",
+      "properties": {
+        "cnr_id": "ty-quant-node",
+        "ver": "0.1.0",
+        "Node name for S&R": "TushareProvider"
+      },
+      "widgets_values": [
+        "environment",
+        "TUSHARE_TOKEN",
+        "daily+adj_factor+dividend",
+        "000001.SZ",
+        "2024-01-01",
+        "2024-12-31",
+        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\artifacts\\learning\\snapshots",
+        true,
+        3,
+        50,
+        200
+      ],
+      "widgets_values_named": {
+        "token_source": "environment",
+        "token_env_name": "TUSHARE_TOKEN",
+        "api_profile": "daily+adj_factor+dividend",
+        "ts_codes": "000001.SZ",
+        "query_start": "2024-01-01",
+        "query_end": "2024-12-31",
+        "snapshot_dir": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\artifacts\\learning\\snapshots",
+        "incremental": true,
+        "retries": 3,
+        "max_codes_per_request": 50,
+        "max_days_per_request": 200
+      },
+      "color": "#276b74",
+      "bgcolor": "#1d4d53"
+    },
+    {
+      "id": 2,
+      "type": "TYDataInspect",
+      "pos": [
+        540,
+        0
+      ],
+      "size": [
+        460,
+        280
+      ],
+      "flags": {
+        "pinned": false
+      },
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "instrument",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "instrument"
+          }
+        },
+        {
+          "name": "lookback",
+          "type": "INT",
+          "link": null,
+          "widget": {
+            "name": "lookback"
+          }
+        },
+        {
+          "name": "output_dir",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "output_dir"
+          }
+        },
+        {
+          "name": "market_data",
+          "type": "MARKET_DATA",
+          "link": 1,
+          "shape": 7
+        },
+        {
+          "name": "qlib_export",
+          "type": "QLIB_EXPORT",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": null
+        },
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "slot_index": 1,
+          "links": null
+        },
+        {
+          "name": "DATA_AUDIT",
+          "type": "DATA_AUDIT",
+          "slot_index": 2,
+          "links": null
+        }
+      ],
+      "title": "2. 查看原始快照",
+      "properties": {
+        "cnr_id": "ty-quant-node",
+        "ver": "0.1.0",
+        "Node name for S&R": "TYDataInspect"
+      },
+      "widgets_values": [
+        "",
+        120,
+        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\artifacts\\learning\\inspect_raw"
+      ],
+      "widgets_values_named": {
+        "instrument": "",
+        "lookback": 120,
+        "output_dir": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\artifacts\\learning\\inspect_raw"
+      },
+      "color": "#3b6b8c",
+      "bgcolor": "#254b63"
+    },
+    {
+      "id": 3,
+      "type": "TushareToQlib",
+      "pos": [
+        1080,
+        0
+      ],
+      "size": [
+        460,
+        250
+      ],
+      "flags": {
+        "pinned": false
+      },
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "market_data",
+          "type": "MARKET_DATA",
+          "link": 2,
+          "shape": 7
+        },
+        {
+          "name": "adjustment_mode",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "adjustment_mode"
+          }
+        },
+        {
+          "name": "output_dir",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "output_dir"
+          }
+        },
+        {
+          "name": "incremental",
+          "type": "BOOLEAN",
+          "link": null,
+          "widget": {
+            "name": "incremental"
+          }
+        },
+        {
+          "name": "control",
+          "type": "QLIB_CONTROL",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "QLIB_EXPORT",
+          "type": "QLIB_EXPORT",
+          "slot_index": 0,
+          "links": [
+            3
+          ]
+        }
+      ],
+      "title": "3. 转换为 Qlib",
+      "properties": {
+        "cnr_id": "ty-quant-node",
+        "ver": "0.1.0",
+        "Node name for S&R": "TushareToQlib"
+      },
+      "widgets_values": [
+        "pit",
+        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\artifacts\\learning\\provider",
+        true
+      ],
+      "widgets_values_named": {
+        "adjustment_mode": "pit",
+        "output_dir": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\artifacts\\learning\\provider",
+        "incremental": true
+      },
+      "color": "#356b8c",
+      "bgcolor": "#254b63"
+    },
+    {
+      "id": 4,
+      "type": "TYDataInspect",
+      "pos": [
+        1620,
+        0
+      ],
+      "size": [
+        460,
+        280
+      ],
+      "flags": {
+        "pinned": false
+      },
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "instrument",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "instrument"
+          }
+        },
+        {
+          "name": "lookback",
+          "type": "INT",
+          "link": null,
+          "widget": {
+            "name": "lookback"
+          }
+        },
+        {
+          "name": "output_dir",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "output_dir"
+          }
+        },
+        {
+          "name": "market_data",
+          "type": "MARKET_DATA",
+          "link": null
+        },
+        {
+          "name": "qlib_export",
+          "type": "QLIB_EXPORT",
+          "link": 3,
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": null
+        },
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "slot_index": 1,
+          "links": null
+        },
+        {
+          "name": "DATA_AUDIT",
+          "type": "DATA_AUDIT",
+          "slot_index": 2,
+          "links": null
+        }
+      ],
+      "title": "4. 查看 Qlib provider",
+      "properties": {
+        "cnr_id": "ty-quant-node",
+        "ver": "0.1.0",
+        "Node name for S&R": "TYDataInspect"
+      },
+      "widgets_values": [
+        "",
+        120,
+        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\artifacts\\learning\\inspect_qlib"
+      ],
+      "widgets_values_named": {
+        "instrument": "",
+        "lookback": 120,
+        "output_dir": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\artifacts\\learning\\inspect_qlib"
+      },
+      "color": "#3b6b8c",
+      "bgcolor": "#254b63"
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      2,
+      3,
+      "MARKET_DATA"
+    ],
+    [
+      2,
+      1,
+      0,
+      3,
+      0,
+      "MARKET_DATA"
+    ],
+    [
+      3,
+      3,
+      0,
+      4,
+      4,
+      "QLIB_EXPORT"
+    ]
+  ],
+  "groups": [
+    {
+      "title": "学习：Tushare 原始数据",
+      "bounding": [
+        -20,
+        -20,
+        1020,
+        700
+      ],
+      "color": "#3f789e",
+      "font_size": 24
+    },
+    {
+      "title": "学习：Qlib provider",
+      "bounding": [
+        1060,
+        -20,
+        1060,
+        700
+      ],
+      "color": "#3f789e",
+      "font_size": 24
+    }
+  ],
+  "config": {},
+  "extra": {
+    "workflow_name": "TY Qlib Learning Data Flow",
+    "description": "只学习 TushareProvider、Qlib 导出和数据审计。",
+    "control_schema_version": "2"
+  },
+  "version": 0.4
+}

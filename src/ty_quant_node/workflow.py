@@ -326,6 +326,43 @@ def build_ty_factors_workflow(ts_codes: str, start_date: str, end_date: str, art
             {"title": "预测、回测与报告", "bounding": [3760, -20, 1040, 700], "color": "#8c573b", "font_size": 24}],
         "config": {}, "extra": {"workflow_name": "TY Factors Tushare PIT Workflow", "description": "Tushare Provider 统一管理凭证、接口、日线和复权数据。", "control_schema_version": "2"}, "version": 0.4}
 
+
+def build_learning_workflow(artifact_root: str) -> dict[str, Any]:
+    """构造只用于学习数据源和 Qlib 导出的最小工作流。"""
+    root = Path(artifact_root).resolve()
+    values = {
+        "token_source": "environment", "token_env_name": "TUSHARE_TOKEN",
+        "api_profile": "daily+adj_factor+dividend", "ts_codes": "000001.SZ",
+        "query_start": "2024-01-01", "query_end": "2024-12-31",
+        "snapshot_dir": str(root / "snapshots"), "incremental": True,
+        "retries": 3, "max_codes_per_request": 50, "max_days_per_request": 200,
+        "adjustment_mode": "pit", "output_dir": str(root / "provider"),
+        "instrument": "", "lookback": 120,
+    }
+    links = [_link(1, (1, 0), (2, 3), "MARKET_DATA"), _link(2, (1, 0), (3, 0), "MARKET_DATA"), _link(3, (3, 0), (4, 4), "QLIB_EXPORT")]
+    links_by_input = {(2, "market_data"): 1, (3, "market_data"): 2, (4, "qlib_export"): 3}
+    links_by_output = {1: {0: [1, 2]}, 3: {0: [3]}}
+    specs = [
+        (1, "TushareProvider", (0, 0), (460, 360), 0, "1. Tushare 数据源", "#276b74", "#1d4d53"),
+        (2, "TYDataInspect", (540, 0), (460, 280), 1, "2. 查看原始快照", "#3b6b8c", "#254b63"),
+        (3, "TushareToQlib", (1080, 0), (460, 250), 2, "3. 转换为 Qlib", "#356b8c", "#254b63"),
+        (4, "TYDataInspect", (1620, 0), (460, 280), 3, "4. 查看 Qlib provider", "#3b6b8c", "#254b63"),
+    ]
+    nodes = [_make_node(node_id, node_type, dict(values), {name: link for (target, name), link in links_by_input.items() if target == node_id}, links_by_output.get(node_id, {}), position=position, size=size, order=order, title=title, color=color, bgcolor=bgcolor) for node_id, node_type, position, size, order, title, color, bgcolor in specs]
+    for node in nodes:
+        if node["id"] == 2:
+            node["widgets_values_named"]["output_dir"] = str(root / "inspect_raw")
+        elif node["id"] == 4:
+            node["widgets_values_named"]["output_dir"] = str(root / "inspect_qlib")
+        for index, item in enumerate(node["inputs"]):
+            name = item.get("widget", {}).get("name")
+            if name in node["widgets_values_named"]:
+                widget_index = sum(1 for candidate in node["inputs"][:index] if "widget" in candidate)
+                node["widgets_values"][widget_index] = node["widgets_values_named"][name]
+    return {"id": str(uuid.UUID("5d91bce2-2dd4-4b64-9d1c-25bda1d0c004")), "revision": 0, "last_node_id": 4, "last_link_id": 3, "nodes": nodes, "links": links,
+        "groups": [{"title": "学习：Tushare 原始数据", "bounding": [-20, -20, 1020, 700], "color": "#3f789e", "font_size": 24}, {"title": "学习：Qlib provider", "bounding": [1060, -20, 1060, 700], "color": "#3f789e", "font_size": 24}],
+        "config": {}, "extra": {"workflow_name": "TY Qlib Learning Data Flow", "description": "只学习 TushareProvider、Qlib 导出和数据审计。", "control_schema_version": "2"}, "version": 0.4}
+
 def validate_workflow(workflow: dict[str, Any]) -> list[str]:
     """检查工作流是否能被编辑器恢复为与节点定义一致的图。"""
 

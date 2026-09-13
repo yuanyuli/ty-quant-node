@@ -1,4 +1,4 @@
-from ty_quant_node.workflow import build_mvp_workflow, build_ty_factors_workflow, validate_workflow, workflow_to_prompt
+from ty_quant_node.workflow import build_mvp_workflow, build_ty_factors_workflow, build_learning_workflow, validate_workflow, workflow_to_prompt
 
 
 def test_legacy_workflow_is_rejected_for_editor_metadata():
@@ -96,3 +96,12 @@ def test_workflow_groups_do_not_overlap():
         for right in groups[index + 1 :]:
             rx, ry, rw, rh = right["bounding"]
             assert lx + lw <= rx or rx + rw <= lx or ly + lh <= ry or ry + rh <= ly
+
+
+def test_learning_workflow_is_minimal_and_connected(tmp_path):
+    workflow = build_learning_workflow(str(tmp_path / "artifacts"))
+    assert validate_workflow(workflow) == []
+    prompt = workflow_to_prompt(workflow)
+    assert [prompt[str(i)]["class_type"] for i in range(1, 5)] == ["TushareProvider", "TYDataInspect", "TushareToQlib", "TYDataInspect"]
+    assert prompt["2"]["inputs"]["market_data"] == ["1", 0]
+    assert prompt["4"]["inputs"]["qlib_export"] == ["3", 0]

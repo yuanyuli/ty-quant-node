@@ -120,7 +120,11 @@ class TushareConfig:
                 "token_source": (["environment"],),
                 "token_env_name": ("STRING", {"default": "TUSHARE_TOKEN", "multiline": False}),
                 "retries": ("INT", {"default": 3, "min": 1, "max": 5}),
-            }
+            },
+            "optional": {
+                "max_codes_per_request": ("INT", {"default": 50, "min": 1, "max": 500}),
+                "max_days_per_request": ("INT", {"default": 200, "min": 1, "max": 365}),
+            },
         }
 
     RETURN_TYPES = ("TUSHARE_CONFIG",)
@@ -128,7 +132,14 @@ class TushareConfig:
     FUNCTION = "run"
     CATEGORY = "TY Quant/Data"
 
-    def run(self, token_source="environment", token_env_name="TUSHARE_TOKEN", retries=3):
+    def run(
+        self,
+        token_source="environment",
+        token_env_name="TUSHARE_TOKEN",
+        retries=3,
+        max_codes_per_request=50,
+        max_days_per_request=200,
+    ):
         # 兼容早期 run("environment", 3) 调用，避免旧工作流脚本失效。
         if isinstance(token_env_name, (int, float)) and retries == 3:
             retries, token_env_name = int(token_env_name), "TUSHARE_TOKEN"
@@ -137,11 +148,21 @@ class TushareConfig:
         token_env_name = str(token_env_name or "").strip()
         if not token_env_name:
             raise ValueError("token_env_name 不能为空")
+        max_codes_per_request = int(max_codes_per_request)
+        max_days_per_request = int(max_days_per_request)
+        if max_codes_per_request < 1 or max_days_per_request < 1:
+            raise ValueError("Tushare 请求分块大小必须大于 0")
         return (
             Handle(
                 "TUSHARE_CONFIG",
                 "",
-                metadata={"token_source": token_source, "token_env_name": token_env_name, "retries": int(retries)},
+                metadata={
+                    "token_source": token_source,
+                    "token_env_name": token_env_name,
+                    "retries": int(retries),
+                    "max_codes_per_request": max_codes_per_request,
+                    "max_days_per_request": max_days_per_request,
+                },
             ).to_dict(),
         )
 
@@ -321,6 +342,8 @@ class TushareDailyFetch:
         source = TushareDailySource(
             retries=int(cfg.metadata.get("retries", 3)),
             token_env_name=token_env_name,
+            max_codes_per_request=int(cfg.metadata.get("max_codes_per_request", 50)),
+            max_days_per_request=int(cfg.metadata.get("max_days_per_request", 200)),
         )
         codes = [code.strip().upper() for code in re.split(r"[,;\s]+", str(ts_codes or "")) if code.strip()]
         codes = list(dict.fromkeys(codes))

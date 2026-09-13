@@ -353,6 +353,22 @@
           "widget": {
             "name": "retries"
           }
+        },
+        {
+          "name": "max_codes_per_request",
+          "type": "INT",
+          "link": null,
+          "widget": {
+            "name": "max_codes_per_request"
+          }
+        },
+        {
+          "name": "max_days_per_request",
+          "type": "INT",
+          "link": null,
+          "widget": {
+            "name": "max_days_per_request"
+          }
         }
       ],
       "outputs": [
@@ -374,12 +390,16 @@
       "widgets_values": [
         "environment",
         "TUSHARE_TOKEN",
-        3
+        3,
+        50,
+        200
       ],
       "widgets_values_named": {
         "token_source": "environment",
         "token_env_name": "TUSHARE_TOKEN",
-        "retries": 3
+        "retries": 3,
+        "max_codes_per_request": 50,
+        "max_days_per_request": 200
       },
       "color": "#276b74",
       "bgcolor": "#1d4d53"

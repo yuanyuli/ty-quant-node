@@ -78,3 +78,67 @@ def test_tushare_stk_div_uses_per_share_ratio():
     source = TushareDailySource(token="secret-token", transport=transport, sleep=lambda _: None)
     result = source.fetch(["000001.SZ"], "20240101", "20240105", include_events=True)
     assert result.attrs["events"][0]["split_multiplier"] == pytest.approx(1.2)
+
+
+def test_tushare_splits_large_code_and_date_queries():
+    calls = []
+
+    def transport(payload):
+        calls.append(payload)
+        params = payload["params"]
+        codes = params["ts_code"].split(",")
+        date = params["start_date"]
+        if payload["api_name"] == "daily":
+            fields = ["ts_code", "trade_date", "open", "high", "low", "close", "vol", "amount"]
+            items = [[code, date, 10, 11, 9, 10.5, 100, 1000] for code in codes]
+        else:
+            fields = ["ts_code", "trade_date", "adj_factor"]
+            items = [[code, date, 2.0] for code in codes]
+        return {"code": 0, "data": {"fields": fields, "items": items}}
+
+    source = TushareDailySource(
+        token="secret-token",
+        transport=transport,
+        max_codes_per_request=1,
+        max_days_per_request=2,
+        sleep=lambda _: None,
+    )
+    result = source.fetch(["000001.SZ", "600000.SH"], "20240101", "20240103")
+
+    assert len(calls) == 8
+    assert {call["api_name"] for call in calls} == {"daily", "adj_factor"}
+    assert {call["params"]["ts_code"] for call in calls} == {"000001.SZ", "600000.SH"}
+    assert {call["params"]["start_date"] for call in calls} == {"20240101", "20240103"}
+    assert len(result) == 4
+    assert result["adj_factor"].notna().all()
+
+
+def test_tushare_rejects_missing_adjustment_factor_rows():
+    def transport(payload):
+        if payload["api_name"] == "daily":
+            return {"code": 0, "data": {"fields": ["ts_code", "trade_date", "open", "high", "low", "close", "vol", "amount"], "items": [["000001.SZ", "20240102", 10, 11, 9, 10.5, 100, 1000]]}}
+        return {"code": 0, "data": {"fields": ["ts_code", "trade_date", "adj_factor"], "items": []}}
+
+    source = TushareDailySource(token="secret-token", transport=transport, sleep=lambda _: None)
+
+    with pytest.raises(TushareError, match="复权因子缺失"):
+        source.fetch(["000001.SZ"], "20240101", "20240103")
+
+
+def test_tushare_rejects_duplicate_adjustment_factor_keys():
+    def transport(payload):
+        if payload["api_name"] == "daily":
+            return {"code": 0, "data": {"fields": ["ts_code", "trade_date", "open", "high", "low", "close", "vol", "amount"], "items": [["000001.SZ", "20240102", 10, 11, 9, 10.5, 100, 1000]]}}
+        return {"code": 0, "data": {"fields": ["ts_code", "trade_date", "adj_factor"], "items": [["000001.SZ", "20240102", 2.0], ["000001.SZ", "20240102", 2.0]]}}
+
+    source = TushareDailySource(token="secret-token", transport=transport, sleep=lambda _: None)
+
+    with pytest.raises(TushareError, match="重复"):
+        source.fetch(["000001.SZ"], "20240101", "20240103")
+
+
+def test_tushare_rejects_malformed_response_payload():
+    source = TushareDailySource(token="secret-token", transport=lambda _payload: None, sleep=lambda _: None)
+
+    with pytest.raises(TushareError, match="返回格式无效"):
+        source._call("daily", {})

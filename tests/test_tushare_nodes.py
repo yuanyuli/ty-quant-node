@@ -84,10 +84,13 @@ def test_tushare_config_forwards_environment_name_and_fetch_keeps_old_snapshot(m
             return f"snapshot-{float(frame.iloc[0]['close_raw']):g}"
 
     monkeypatch.setattr("ty_quant_node.nodes.TushareDailySource", _VersionedSource)
-    config = TushareConfig().run("environment", "TY_TOKEN", 3)[0]
+    config = TushareConfig().run("environment", "TY_TOKEN", 3, 2, 10)[0]
     first = TushareDailyFetch().run(config, "000001.SZ", "20240101", "20240102", str(tmp_path / "snapshots"), True)[0]
     second = TushareDailyFetch().run(config, "000001.SZ", "20240101", "20240102", str(tmp_path / "snapshots"), True)[0]
-    assert calls == [{"retries": 3, "token_env_name": "TY_TOKEN"}, {"retries": 3, "token_env_name": "TY_TOKEN"}]
+    assert calls == [
+        {"retries": 3, "token_env_name": "TY_TOKEN", "max_codes_per_request": 2, "max_days_per_request": 10},
+        {"retries": 3, "token_env_name": "TY_TOKEN", "max_codes_per_request": 2, "max_days_per_request": 10},
+    ]
     assert first["path"] != second["path"]
     assert (tmp_path / "snapshots" / "manifest.json").exists()
     assert (tmp_path / "snapshots" / "snapshot-12" / "manifest.json").exists()

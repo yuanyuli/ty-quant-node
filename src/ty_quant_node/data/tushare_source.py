@@ -5,6 +5,7 @@ import os
 import time
 import hashlib
 import re
+from datetime import timedelta
 from urllib.request import Request, urlopen
 import pandas as pd
 
@@ -28,6 +29,8 @@ class TushareDailySource:
         retries: int = 3,
         sleep=time.sleep,
         timeout_seconds: float = 30.0,
+        max_codes_per_request: int = 50,
+        max_days_per_request: int = 200,
     ):
         token_env_name = str(token_env_name or "").strip()
         if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", token_env_name):
@@ -40,6 +43,10 @@ class TushareDailySource:
         self._retries = max(1, int(retries))
         self._sleep = sleep
         self._timeout_seconds = max(1.0, float(timeout_seconds))
+        self._max_codes_per_request = int(max_codes_per_request)
+        self._max_days_per_request = int(max_days_per_request)
+        if self._max_codes_per_request < 1 or self._max_days_per_request < 1:
+            raise ValueError("Tushare 请求分块大小必须大于 0")
 
     def _http_transport(self, payload):
         request = Request(
@@ -61,14 +68,44 @@ class TushareDailySource:
                 if attempt + 1 >= self._retries:
                     raise TushareError(f"Tushare 网络请求失败: {type(exc).__name__}") from exc
                 self._sleep(0.2 * (attempt + 1))
+        if not isinstance(response, dict):
+            raise TushareError("Tushare 返回格式无效")
         if response.get("code", 0) != 0:
             message = str(response.get("msg") or "未知错误")
             if "token" in message.lower() or "权限" in message or "认证" in message:
                 raise TushareError("Tushare 认证或权限错误，请检查会员权限和 TUSHARE_TOKEN")
             raise TushareError(f"Tushare 接口错误: {message}")
         data = response.get("data") or {}
+        if not isinstance(data, dict):
+            raise TushareError("Tushare 返回数据格式无效")
+        if data.get("has_more"):
+            raise TushareError("Tushare 返回结果超过单次限制，请缩小股票范围或日期区间")
         fields, items = data.get("fields") or [], data.get("items") or []
         return pd.DataFrame(items, columns=fields)
+
+    def _fetch_chunks(self, api_name: str, codes: list[str], start: str, end: str) -> pd.DataFrame:
+        """按股票和日期窗口请求，避免单次查询超过 Tushare 行数上限。"""
+
+        start_date = pd.to_datetime(start, format="%Y%m%d")
+        end_date = pd.to_datetime(end, format="%Y%m%d")
+        parts: list[pd.DataFrame] = []
+        for offset in range(0, len(codes), self._max_codes_per_request):
+            code_batch = codes[offset : offset + self._max_codes_per_request]
+            window_start = start_date
+            while window_start <= end_date:
+                window_end = min(window_start + timedelta(days=self._max_days_per_request - 1), end_date)
+                params = {
+                    "ts_code": ",".join(code_batch),
+                    "start_date": window_start.strftime("%Y%m%d"),
+                    "end_date": window_end.strftime("%Y%m%d"),
+                }
+                part = self._call(api_name, params)
+                if not part.empty:
+                    parts.append(part)
+                window_start = window_end + timedelta(days=1)
+        if not parts:
+            return pd.DataFrame()
+        return pd.concat(parts, ignore_index=True, sort=False)
 
     def fetch(self, ts_codes: list[str], start_date: str, end_date: str, *, include_events: bool = False) -> pd.DataFrame:
         if not ts_codes:
@@ -80,11 +117,20 @@ class TushareDailySource:
         end = self._normalize_date(end_date, "end_date")
         if start > end:
             raise ValueError("start_date 不能晚于 end_date")
-        params = {"ts_code": ",".join(codes), "start_date": start, "end_date": end}
-        daily = self._call("daily", params)
-        factor = self._call("adj_factor", params)
+        daily = self._fetch_chunks("daily", codes, start, end)
+        factor = self._fetch_chunks("adj_factor", codes, start, end)
         if daily.empty:
             raise TushareError("Tushare 日线接口无数据")
+        daily_required = {"ts_code", "trade_date", "open", "high", "low", "close", "vol", "amount"}
+        missing_daily = daily_required - set(daily.columns)
+        if missing_daily:
+            raise TushareError(f"Tushare 日线返回字段缺失: {', '.join(sorted(missing_daily))}")
+        if factor.empty:
+            raise TushareError("Tushare 复权因子缺失")
+        factor_required = {"ts_code", "trade_date", "adj_factor"}
+        missing_factor = factor_required - set(factor.columns)
+        if missing_factor:
+            raise TushareError(f"Tushare 复权因子字段缺失: {', '.join(sorted(missing_factor))}")
         daily = daily.rename(
             columns={
                 "ts_code": "instrument",
@@ -99,13 +145,24 @@ class TushareDailySource:
         )
         factor = factor.rename(columns={"ts_code": "instrument", "trade_date": "datetime"})
         keep = ["instrument", "datetime", "adj_factor"]
-        merged = daily.merge(factor[keep], on=["instrument", "datetime"], how="left", validate="many_to_one")
-        merged["datetime"] = pd.to_datetime(merged["datetime"].astype(str))
+        daily["instrument"] = daily["instrument"].astype(str).str.strip().str.upper()
+        factor["instrument"] = factor["instrument"].astype(str).str.strip().str.upper()
+        daily["datetime"] = pd.to_datetime(daily["datetime"].astype(str)).dt.normalize()
+        factor["datetime"] = pd.to_datetime(factor["datetime"].astype(str)).dt.normalize()
+        for name, table in (("日线", daily), ("复权因子", factor)):
+            if table.duplicated(["instrument", "datetime"]).any():
+                raise TushareError(f"Tushare {name}存在重复 instrument + datetime")
+        factor["adj_factor"] = pd.to_numeric(factor["adj_factor"], errors="coerce")
+        if factor["adj_factor"].isna().any() or (factor["adj_factor"] <= 0).any():
+            raise TushareError("Tushare 复权因子缺失或非正")
+        merged = daily.merge(factor[keep], on=["instrument", "datetime"], how="left", validate="one_to_one")
+        if merged["adj_factor"].isna().any():
+            raise TushareError("Tushare 复权因子缺失或非正")
         merged["trade_status"] = 1
         merged["source"] = "tushare"
         merged["asof"] = pd.Timestamp.now(tz="UTC").isoformat()
         if include_events:
-            events = self._call("dividend", params)
+            events = self._fetch_chunks("dividend", codes, start, end)
             merged.attrs["events"] = self._normalize_events(events, merged)
         return merged.sort_values(["datetime", "instrument"]).reset_index(drop=True)
 

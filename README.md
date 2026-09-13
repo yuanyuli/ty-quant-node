@@ -71,7 +71,7 @@ uv run pytest ty-quant-node/tests -q
 $env:TUSHARE_TOKEN = "你的 token"
 ```
 
-`TushareConfig` 只保存 `token_source=environment`、环境变量名（默认 `TUSHARE_TOKEN`）和重试次数，不接受 token 文本。`TushareDailyFetch` 分别调用 `daily` 和 `adj_factor`，可选调用 `dividend`，再按 `ts_code + trade_date` 合并。股票代码支持逗号、分号或换行分隔。每个 raw 快照写入 `manifest.json`、`raw.parquet`，有事件时另写 `events.parquet`；同一目录出现新 snapshot 会自动写入 `<snapshot_id>` 子目录，不覆盖历史版本。`TushareConfig` 只负责凭证，查询参数由 `QlibControl` 管理，token 永远不会进入总控句柄或工作流。
+`TushareConfig` 只保存 `token_source=environment`、环境变量名（默认 `TUSHARE_TOKEN`）、重试次数和请求分块大小，不接受 token 文本。默认每次最多请求 50 个股票、200 个自然日；接口额度较低时可在节点中降低这两个值。`TushareDailyFetch` 按股票和日期窗口调用 `daily`、`adj_factor`，可选调用 `dividend`，再按 `ts_code + trade_date` 合并；空的或不完整的复权因子会直接报错。股票代码支持逗号、分号或换行分隔。每个 raw 快照写入 `manifest.json`、`raw.parquet`，有事件时另写 `events.parquet`；同一目录出现新 snapshot 会自动写入 `<snapshot_id>` 子目录，不覆盖历史版本。`TushareConfig` 只负责凭证和请求策略，查询参数由 `QlibControl` 管理，token 永远不会进入总控句柄或工作流。
 
 `TushareToQlib` 的 `adjustment_policy` 有四种：`pit`（推荐，事件驱动）、`vendor_qfq`、`vendor_hfq` 和 `none`。`none` 只适合检查原始数据，因子计算会拒绝它。`TYFactorCompute` 默认加载版本化的 `TY-Factors` 注册表，当前包含动量、波动率和成交量比率；选择 `alpha158` 时直接使用 Qlib 的 158 个标准公式，前提是 provider 已经是复权后的标准字段。`selected` 可从两套注册表选因子，`custom` 接受 JSON 因子定义。
 

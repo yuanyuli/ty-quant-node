@@ -46,7 +46,7 @@ ty_volume(t) = volume_raw(t) / ty_split_factor(t)
 
 ### `TushareConfig`
 
-只保存 `token_source=environment`、token 环境变量名和请求重试次数；token 只从 ComfyUI 进程环境读取，不能进入句柄 metadata、workflow、日志和 artifact。
+只保存 `token_source=environment`、token 环境变量名、请求重试次数和请求分块大小；默认每批最多 50 个标的、200 个自然日。token 只从 ComfyUI 进程环境读取，不能进入句柄 metadata、workflow、日志和 artifact。
 
 ### `QlibControl`
 

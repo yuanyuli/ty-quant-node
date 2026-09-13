@@ -21,6 +21,9 @@ def test_tushare_config_exposes_environment_name_without_accepting_raw_token():
     assert required["token_source"][0] == ["environment"]
     assert required["token_env_name"][1]["default"] == "TUSHARE_TOKEN"
     assert "token" not in required
+    optional = TushareConfig.INPUT_TYPES()["optional"]
+    assert optional["max_codes_per_request"][1]["default"] == 50
+    assert optional["max_days_per_request"][1]["default"] == 200
 
 
 def test_data_and_factor_nodes_expose_optional_control_input():

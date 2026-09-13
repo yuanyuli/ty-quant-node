@@ -34,6 +34,8 @@ TushareConfig -> TushareDailyFetch -> TushareToQlib -> TYFactorCompute
 
 所有可复用产物都遵循“运行键 + manifest + 原子发布”约定：相同输入快照、因子/模型参数和回测参数会命中同一个版本目录；参数或输入发生变化时写入新的短 hash 子目录，旧目录不覆盖。目录先在同级隐藏 staging 目录构建，只有 `raw.parquet`/`features.parquet`/模型文件/曲线和 manifest 全部成功后才提交；中途异常会自动清理 staging。训练、预测、回测和报告也各自保留 manifest，便于定位输入版本和重复复核。
 
+预测信号会写入训练模型目录下的 `signals/<run_key>/signal.parquet`，同目录的 `manifest.json` 记录模型、Dataset、因子集、segment、列契约和 `files.signal` SHA-256。相同运行键会校验文件 hash 后复用；运行键变化会生成新的目录，已存在但内容不一致的目录会拒绝覆盖。这样回测引用的信号始终对应一个可定位的模型与数据版本。
+
 ## 数据与复权口径
 
 输入可以是 CSV 或 Parquet。原始字段至少包括：`instrument`、`datetime`、`open_raw`、`high_raw`、`low_raw`、`close_raw`、`volume_raw`、`adj_factor`。Tushare 字段 `ts_code/trade_date/open/high/low/close/vol/amount` 会自动规范化。
@@ -72,6 +74,8 @@ $env:TUSHARE_TOKEN = "你的 token"
 ```
 
 `TushareConfig` 只保存 `token_source=environment`、环境变量名（默认 `TUSHARE_TOKEN`）、重试次数和请求分块大小，不接受 token 文本。默认每次最多请求 50 个股票、200 个自然日；接口额度较低时可在节点中降低这两个值。`TushareDailyFetch` 按股票和日期窗口调用 `daily`、`adj_factor`，可选调用 `dividend`，再按 `ts_code + trade_date` 合并；空的或不完整的复权因子会直接报错。股票代码支持逗号、分号或换行分隔。每个 raw 快照写入 `manifest.json`、`raw.parquet`，有事件时另写 `events.parquet`；同一目录出现新 snapshot 会自动写入 `<snapshot_id>` 子目录，不覆盖历史版本。`TushareConfig` 只负责凭证和请求策略，查询参数由 `QlibControl` 管理，token 永远不会进入总控句柄或工作流。
+
+`QlibRuntime` 无论使用真实 Qlib 还是兼容 Dataset 后端，都会先按 `seed` 初始化 Python `random` 和 NumPy 随机源，保证同一输入和参数下的运行顺序一致。
 
 `TushareToQlib` 的 `adjustment_policy` 有四种：`pit`（推荐，事件驱动）、`vendor_qfq`、`vendor_hfq` 和 `none`。`none` 只适合检查原始数据，因子计算会拒绝它。`TYFactorCompute` 默认加载版本化的 `TY-Factors` 注册表，当前包含动量、波动率和成交量比率；选择 `alpha158` 时直接使用 Qlib 的 158 个标准公式，前提是 provider 已经是复权后的标准字段。`selected` 可从两套注册表选因子，`custom` 接受 JSON 因子定义。
 

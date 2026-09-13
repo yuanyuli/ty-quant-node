@@ -2,6 +2,8 @@
 
 ## 未发布
 
+- 预测信号改为按运行键写入 `signals/<run_key>/signal.parquet`，新增输入引用、列契约和文件 SHA-256 manifest；相同运行键校验后复用，冲突产物拒绝覆盖。
+- `QlibRuntime` 在真实 Qlib 和兼容后端分支统一初始化 Python 与 NumPy 随机种子。
 - Tushare 日线、复权因子和事件请求支持按股票与日期窗口分块，并对空结果、重复键、缺失/非正复权因子和异常响应给出明确错误。
 - `TushareConfig` 增加请求分块大小配置，避免大股票池和长区间触发单次接口限制。
 - `QlibDataset` 从已导出的 provider 直接使用调整后 `close` 生成标签，避免复权日跨段收益回到 raw 价格口径。

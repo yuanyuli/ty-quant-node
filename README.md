@@ -28,7 +28,7 @@ TushareConfig -> TushareDailyFetch -> TushareToQlib -> TYFactorCompute
 
 当前节点：`QlibControl`、`QlibRuntime`、`TushareConfig`、`TushareDailyFetch`、`TushareToQlib`、`TYFactorCompute`、`AdjustPrices`、`QlibExport`、`QlibDataset`、`QlibModel`、`QlibTrain`、`QlibPredict`、`QlibBacktest`、`QlibReport`。
 
-`QlibControl` 是 H3 导演工作台风格的总控节点。它集中保存 CSV 路径、复权方式、训练/测试区间、模型参数、回测参数和报告目录，再通过 `QLIB_CONTROL` 句柄扇出到各阶段节点。各阶段仍然独立执行，便于替换数据源或定位问题。
+`QlibControl` 是 H3 导演工作台风格的总控节点。它集中保存本地 CSV 或 Tushare 查询、复权方式、训练/测试区间、TY-Factors 选择、模型参数、回测参数和报告目录，再通过 `QLIB_CONTROL` 句柄扇出到各阶段节点。数据、转换、因子、Dataset、模型、训练、预测、回测和报告节点连接总控后，以总控字段为准；未连接总控时仍使用自身 widgets，便于替换数据源或定位问题。
 
 节点之间传递的是带 `kind/version/path/metadata` 的轻量句柄，行情表、模型文件和净值曲线写入本地 artifact 目录，不塞进 workflow JSON。
 
@@ -71,7 +71,7 @@ uv run pytest ty-quant-node/tests -q
 $env:TUSHARE_TOKEN = "你的 token"
 ```
 
-`TushareConfig` 只保存 `token_source=environment`、环境变量名（默认 `TUSHARE_TOKEN`）和重试次数，不接受 token 文本。`TushareDailyFetch` 分别调用 `daily` 和 `adj_factor`，可选调用 `dividend`，再按 `ts_code + trade_date` 合并。股票代码支持逗号、分号或换行分隔。每个 raw 快照写入 `manifest.json`、`raw.parquet`，有事件时另写 `events.parquet`；同一目录出现新 snapshot 会自动写入 `<snapshot_id>` 子目录，不覆盖历史版本。
+`TushareConfig` 只保存 `token_source=environment`、环境变量名（默认 `TUSHARE_TOKEN`）和重试次数，不接受 token 文本。`TushareDailyFetch` 分别调用 `daily` 和 `adj_factor`，可选调用 `dividend`，再按 `ts_code + trade_date` 合并。股票代码支持逗号、分号或换行分隔。每个 raw 快照写入 `manifest.json`、`raw.parquet`，有事件时另写 `events.parquet`；同一目录出现新 snapshot 会自动写入 `<snapshot_id>` 子目录，不覆盖历史版本。`TushareConfig` 只负责凭证，查询参数由 `QlibControl` 管理，token 永远不会进入总控句柄或工作流。
 
 `TushareToQlib` 的 `adjustment_policy` 有四种：`pit`（推荐，事件驱动）、`vendor_qfq`、`vendor_hfq` 和 `none`。`none` 只适合检查原始数据，因子计算会拒绝它。`TYFactorCompute` 默认加载版本化的 `TY-Factors` 注册表，当前包含动量、波动率和成交量比率；选择 `alpha158` 时直接使用 Qlib 的 158 个标准公式，前提是 provider 已经是复权后的标准字段。`selected` 可从两套注册表选因子，`custom` 接受 JSON 因子定义。
 
@@ -97,7 +97,7 @@ $env:TY_QUANT_ALLOWED_ROOTS = "D:\\quant-data;D:\\quant-artifacts"
 
 路径中的 URL、设备路径和 `..` 穿越会在节点读取前直接拒绝。句柄携带的路径也会重新校验，不能通过手工修改 workflow 绕过白名单。
 
-工作流结构由 `src/ty_quant_node/workflow.py` 生成和校验。独立验证使用 `uv run pytest ty-quant-node/tests -q`；本地 CSV 联调将生成 `.artifacts/comfyui-mvp/provider`、`.artifacts/comfyui-mvp/model` 和 `.artifacts/comfyui-mvp/report/equity.png`，Tushare 工作流使用 `.artifacts/ty-factors-mvp/` 下的 snapshot、provider、factors、model 和 report 子目录。
+工作流结构由 `src/ty_quant_node/workflow.py` 生成和校验。独立验证使用 `uv run pytest ty-quant-node/tests -q`；本地 CSV 联调将生成 `.artifacts/comfyui-mvp/provider`、`.artifacts/comfyui-mvp/model` 和 `.artifacts/comfyui-mvp/report/equity.png`，Tushare 工作流以 `QlibControl` 为总控并使用 `.artifacts/ty-factors-mvp/` 下的 snapshot、provider、factors、model 和 report 子目录。
 
 ## 代码结构
 

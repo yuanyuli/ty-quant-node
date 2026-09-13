@@ -140,6 +140,94 @@
           "widget": {
             "name": "report_dir"
           }
+        },
+        {
+          "name": "ts_codes",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "ts_codes"
+          }
+        },
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "start_date"
+          }
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "end_date"
+          }
+        },
+        {
+          "name": "snapshot_dir",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "snapshot_dir"
+          }
+        },
+        {
+          "name": "include_events",
+          "type": "BOOLEAN",
+          "link": null,
+          "widget": {
+            "name": "include_events"
+          }
+        },
+        {
+          "name": "adjustment_policy",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "adjustment_policy"
+          }
+        },
+        {
+          "name": "incremental",
+          "type": "BOOLEAN",
+          "link": null,
+          "widget": {
+            "name": "incremental"
+          }
+        },
+        {
+          "name": "factor_set",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "factor_set"
+          }
+        },
+        {
+          "name": "selected_json",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "selected_json"
+          }
+        },
+        {
+          "name": "custom_json",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "custom_json"
+          }
+        },
+        {
+          "name": "factor_output_dir",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "factor_output_dir"
+          }
         }
       ],
       "outputs": [
@@ -179,7 +267,18 @@
         1,
         0,
         5.0,
-        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\comfyui-mvp\\report"
+        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\comfyui-mvp\\report",
+        "000001.SZ",
+        "20240101",
+        "20241231",
+        "outputs/ty_quant/snapshots",
+        true,
+        "pit",
+        true,
+        "ty_factors",
+        "[]",
+        "[]",
+        "outputs/ty_quant/factors"
       ],
       "widgets_values_named": {
         "csv_path": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\tests\\fixtures\\market.csv",
@@ -196,7 +295,18 @@
         "topk": 1,
         "n_drop": 0,
         "transaction_cost_bps": 5.0,
-        "report_dir": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\comfyui-mvp\\report"
+        "report_dir": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\comfyui-mvp\\report",
+        "ts_codes": "000001.SZ",
+        "start_date": "20240101",
+        "end_date": "20241231",
+        "snapshot_dir": "outputs/ty_quant/snapshots",
+        "include_events": true,
+        "adjustment_policy": "pit",
+        "incremental": true,
+        "factor_set": "ty_factors",
+        "selected_json": "[]",
+        "custom_json": "[]",
+        "factor_output_dir": "outputs/ty_quant/factors"
       },
       "color": "#16727c",
       "bgcolor": "#4f0074"

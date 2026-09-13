@@ -61,11 +61,23 @@ def test_ty_factors_workflow_has_valid_links_and_api_contract(tmp_path):
 
     assert validate_workflow(workflow) == []
     prompt = workflow_to_prompt(workflow)
-    assert len(prompt) == 10
-    assert prompt["1"]["class_type"] == "TushareConfig"
-    assert prompt["7"]["inputs"]["model"] == ["6", 0]
-    assert prompt["8"]["inputs"]["dataset"] == ["5", 0]
-    assert prompt["9"]["inputs"]["signal"] == ["8", 0]
-    assert prompt["10"]["inputs"]["backtest_result"] == ["9", 0]
-    assert prompt["4"]["inputs"]["output_dir"].endswith("artifacts\\factors") or prompt["4"]["inputs"]["output_dir"].endswith("artifacts/factors")
-    assert prompt["10"]["inputs"]["output_dir"].endswith("artifacts\\report") or prompt["10"]["inputs"]["output_dir"].endswith("artifacts/report")
+    assert len(prompt) == 11
+    assert prompt["1"]["class_type"] == "QlibControl"
+    assert prompt["2"]["class_type"] == "TushareConfig"
+    assert prompt["3"]["inputs"]["control"] == ["1", 0]
+    assert prompt["4"]["inputs"]["control"] == ["1", 0]
+    assert prompt["5"]["inputs"]["control"] == ["1", 0]
+    assert prompt["6"]["inputs"]["control"] == ["1", 0]
+    assert prompt["7"]["inputs"]["control"] == ["1", 0]
+    assert prompt["8"]["inputs"]["control"] == ["1", 0]
+    assert prompt["9"]["inputs"]["control"] == ["1", 0]
+    assert prompt["10"]["inputs"]["control"] == ["1", 0]
+    assert prompt["11"]["inputs"]["control"] == ["1", 0]
+    assert prompt["8"]["inputs"]["model"] == ["7", 0]
+    assert prompt["9"]["inputs"]["dataset"] == ["6", 0]
+    assert prompt["10"]["inputs"]["signal"] == ["9", 0]
+    assert prompt["11"]["inputs"]["backtest_result"] == ["10", 0]
+    assert prompt["5"]["inputs"]["output_dir"].endswith("artifacts\\factors") or prompt["5"]["inputs"]["output_dir"].endswith("artifacts/factors")
+    assert prompt["11"]["inputs"]["output_dir"].endswith("artifacts\\report") or prompt["11"]["inputs"]["output_dir"].endswith("artifacts/report")
+    assert prompt["1"]["inputs"]["ts_codes"] == "000001.SZ"
+    assert prompt["1"]["inputs"]["adjustment_policy"] == "pit"

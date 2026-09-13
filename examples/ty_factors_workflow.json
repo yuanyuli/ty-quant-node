@@ -1,24 +1,333 @@
 {
   "id": "5d91bce2-2dd4-4b64-9d1c-25bda1d0c002",
   "revision": 0,
-  "last_node_id": 10,
-  "last_link_id": 13,
+  "last_node_id": 11,
+  "last_link_id": 22,
   "nodes": [
     {
       "id": 1,
-      "type": "TushareConfig",
+      "type": "QlibControl",
       "pos": [
         0,
         0
       ],
       "size": [
-        400,
-        160
+        520,
+        1020
       ],
       "flags": {
         "pinned": true
       },
       "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "csv_path",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "csv_path"
+          }
+        },
+        {
+          "name": "adjustment",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "adjustment"
+          }
+        },
+        {
+          "name": "output_root",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "output_root"
+          }
+        },
+        {
+          "name": "train_start",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "train_start"
+          }
+        },
+        {
+          "name": "train_end",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "train_end"
+          }
+        },
+        {
+          "name": "test_start",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "test_start"
+          }
+        },
+        {
+          "name": "test_end",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "test_end"
+          }
+        },
+        {
+          "name": "model_type",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "model_type"
+          }
+        },
+        {
+          "name": "params_json",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "params_json"
+          }
+        },
+        {
+          "name": "artifact_dir",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "artifact_dir"
+          }
+        },
+        {
+          "name": "segment",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "segment"
+          }
+        },
+        {
+          "name": "topk",
+          "type": "INT",
+          "link": null,
+          "widget": {
+            "name": "topk"
+          }
+        },
+        {
+          "name": "n_drop",
+          "type": "INT",
+          "link": null,
+          "widget": {
+            "name": "n_drop"
+          }
+        },
+        {
+          "name": "transaction_cost_bps",
+          "type": "FLOAT",
+          "link": null,
+          "widget": {
+            "name": "transaction_cost_bps"
+          }
+        },
+        {
+          "name": "report_dir",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "report_dir"
+          }
+        },
+        {
+          "name": "ts_codes",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "ts_codes"
+          }
+        },
+        {
+          "name": "start_date",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "start_date"
+          }
+        },
+        {
+          "name": "end_date",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "end_date"
+          }
+        },
+        {
+          "name": "snapshot_dir",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "snapshot_dir"
+          }
+        },
+        {
+          "name": "include_events",
+          "type": "BOOLEAN",
+          "link": null,
+          "widget": {
+            "name": "include_events"
+          }
+        },
+        {
+          "name": "adjustment_policy",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "adjustment_policy"
+          }
+        },
+        {
+          "name": "incremental",
+          "type": "BOOLEAN",
+          "link": null,
+          "widget": {
+            "name": "incremental"
+          }
+        },
+        {
+          "name": "factor_set",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "factor_set"
+          }
+        },
+        {
+          "name": "selected_json",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "selected_json"
+          }
+        },
+        {
+          "name": "custom_json",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "custom_json"
+          }
+        },
+        {
+          "name": "factor_output_dir",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "factor_output_dir"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "QLIB_CONTROL",
+          "type": "QLIB_CONTROL",
+          "slot_index": 0,
+          "links": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9
+          ]
+        }
+      ],
+      "title": "TY Quant 总控",
+      "properties": {
+        "cnr_id": "ty-quant-node",
+        "ver": "0.1.0",
+        "Node name for S&R": "QlibControl"
+      },
+      "widgets_values": [
+        "",
+        "qfq",
+        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\ty-factors-mvp\\provider",
+        "",
+        "",
+        "",
+        "",
+        "linear",
+        "{}",
+        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\ty-factors-mvp\\model",
+        "test",
+        1,
+        0,
+        5.0,
+        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\ty-factors-mvp\\report",
+        "000001.SZ",
+        "2024-01-01",
+        "2024-12-31",
+        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\ty-factors-mvp\\snapshot",
+        true,
+        "pit",
+        true,
+        "ty_factors",
+        "[]",
+        "[]",
+        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\ty-factors-mvp\\factors"
+      ],
+      "widgets_values_named": {
+        "csv_path": "",
+        "adjustment": "qfq",
+        "output_root": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\ty-factors-mvp\\provider",
+        "train_start": "",
+        "train_end": "",
+        "test_start": "",
+        "test_end": "",
+        "model_type": "linear",
+        "params_json": "{}",
+        "artifact_dir": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\ty-factors-mvp\\model",
+        "segment": "test",
+        "topk": 1,
+        "n_drop": 0,
+        "transaction_cost_bps": 5.0,
+        "report_dir": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\ty-factors-mvp\\report",
+        "ts_codes": "000001.SZ",
+        "start_date": "2024-01-01",
+        "end_date": "2024-12-31",
+        "snapshot_dir": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\ty-factors-mvp\\snapshot",
+        "include_events": true,
+        "adjustment_policy": "pit",
+        "incremental": true,
+        "factor_set": "ty_factors",
+        "selected_json": "[]",
+        "custom_json": "[]",
+        "factor_output_dir": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\ty-factors-mvp\\factors"
+      },
+      "color": "#16727c",
+      "bgcolor": "#4f0074"
+    },
+    {
+      "id": 2,
+      "type": "TushareConfig",
+      "pos": [
+        600,
+        0
+      ],
+      "size": [
+        400,
+        180
+      ],
+      "flags": {
+        "pinned": true
+      },
+      "order": 1,
       "mode": 0,
       "inputs": [
         {
@@ -52,11 +361,11 @@
           "type": "TUSHARE_CONFIG",
           "slot_index": 0,
           "links": [
-            1
+            10
           ]
         }
       ],
-      "title": "Tushare 配置",
+      "title": "Tushare 凭证配置",
       "properties": {
         "cnr_id": "ty-quant-node",
         "ver": "0.1.0",
@@ -76,26 +385,26 @@
       "bgcolor": "#1d4d53"
     },
     {
-      "id": 2,
+      "id": 3,
       "type": "TushareDailyFetch",
       "pos": [
-        500,
+        1080,
         0
       ],
       "size": [
         460,
-        260
+        300
       ],
       "flags": {
         "pinned": true
       },
-      "order": 1,
+      "order": 2,
       "mode": 0,
       "inputs": [
         {
           "name": "config",
           "type": "TUSHARE_CONFIG",
-          "link": 1,
+          "link": 10,
           "shape": 7
         },
         {
@@ -137,6 +446,12 @@
           "widget": {
             "name": "include_events"
           }
+        },
+        {
+          "name": "control",
+          "type": "QLIB_CONTROL",
+          "link": 1,
+          "shape": 7
         }
       ],
       "outputs": [
@@ -145,7 +460,7 @@
           "type": "MARKET_DATA",
           "slot_index": 0,
           "links": [
-            2
+            11
           ]
         }
       ],
@@ -157,15 +472,15 @@
       },
       "widgets_values": [
         "000001.SZ",
-        "20240101",
-        "20241231",
+        "2024-01-01",
+        "2024-12-31",
         "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\ty-factors-mvp\\snapshot",
         true
       ],
       "widgets_values_named": {
         "ts_codes": "000001.SZ",
-        "start_date": "20240101",
-        "end_date": "20241231",
+        "start_date": "2024-01-01",
+        "end_date": "2024-12-31",
         "snapshot_dir": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\ty-factors-mvp\\snapshot",
         "include_events": true
       },
@@ -173,26 +488,26 @@
       "bgcolor": "#1d4d53"
     },
     {
-      "id": 3,
+      "id": 4,
       "type": "TushareToQlib",
       "pos": [
-        1040,
+        1620,
         0
       ],
       "size": [
         460,
-        230
+        250
       ],
       "flags": {
         "pinned": true
       },
-      "order": 2,
+      "order": 3,
       "mode": 0,
       "inputs": [
         {
           "name": "market_data",
           "type": "MARKET_DATA",
-          "link": 2,
+          "link": 11,
           "shape": 7
         },
         {
@@ -218,6 +533,12 @@
           "widget": {
             "name": "incremental"
           }
+        },
+        {
+          "name": "control",
+          "type": "QLIB_CONTROL",
+          "link": 2,
+          "shape": 7
         }
       ],
       "outputs": [
@@ -226,8 +547,8 @@
           "type": "QLIB_EXPORT",
           "slot_index": 0,
           "links": [
-            3,
-            4
+            12,
+            13
           ]
         }
       ],
@@ -251,26 +572,26 @@
       "bgcolor": "#254b63"
     },
     {
-      "id": 4,
+      "id": 5,
       "type": "TYFactorCompute",
       "pos": [
-        1580,
+        2160,
         0
       ],
       "size": [
         460,
-        300
+        320
       ],
       "flags": {
         "pinned": true
       },
-      "order": 3,
+      "order": 4,
       "mode": 0,
       "inputs": [
         {
           "name": "export",
           "type": "QLIB_EXPORT",
-          "link": 3,
+          "link": 12,
           "shape": 7
         },
         {
@@ -304,6 +625,12 @@
           "widget": {
             "name": "output_dir"
           }
+        },
+        {
+          "name": "control",
+          "type": "QLIB_CONTROL",
+          "link": 3,
+          "shape": 7
         }
       ],
       "outputs": [
@@ -312,9 +639,9 @@
           "type": "QLIB_FEATURE_SET",
           "slot_index": 0,
           "links": [
-            5,
-            7,
-            11
+            14,
+            16,
+            18
           ]
         },
         {
@@ -346,26 +673,26 @@
       "bgcolor": "#4d3f26"
     },
     {
-      "id": 5,
+      "id": 6,
       "type": "QlibDataset",
       "pos": [
-        2120,
+        2700,
         0
       ],
       "size": [
         500,
-        340
+        360
       ],
       "flags": {
         "pinned": true
       },
-      "order": 4,
+      "order": 5,
       "mode": 0,
       "inputs": [
         {
           "name": "export",
           "type": "QLIB_EXPORT",
-          "link": 4,
+          "link": 13,
           "shape": 7
         },
         {
@@ -403,7 +730,7 @@
         {
           "name": "features",
           "type": "QLIB_FEATURE_SET",
-          "link": 5,
+          "link": 14,
           "shape": 7
         },
         {
@@ -417,7 +744,8 @@
         {
           "name": "control",
           "type": "QLIB_CONTROL",
-          "link": null
+          "link": 4,
+          "shape": 7
         }
       ],
       "outputs": [
@@ -426,9 +754,8 @@
           "type": "QLIB_DATASET",
           "slot_index": 0,
           "links": [
-            4,
-            6,
-            10
+            15,
+            17
           ]
         }
       ],
@@ -456,20 +783,20 @@
       "bgcolor": "#4d3f26"
     },
     {
-      "id": 6,
+      "id": 7,
       "type": "QlibModel",
       "pos": [
-        2120,
+        2700,
         430
       ],
       "size": [
         460,
-        200
+        210
       ],
       "flags": {
         "pinned": true
       },
-      "order": 3,
+      "order": 4,
       "mode": 0,
       "inputs": [
         {
@@ -491,7 +818,8 @@
         {
           "name": "control",
           "type": "QLIB_CONTROL",
-          "link": null
+          "link": 5,
+          "shape": 7
         }
       ],
       "outputs": [
@@ -500,7 +828,7 @@
           "type": "QLIB_MODEL_SPEC",
           "slot_index": 0,
           "links": [
-            8
+            19
           ]
         }
       ],
@@ -522,32 +850,32 @@
       "bgcolor": "#4d3f26"
     },
     {
-      "id": 7,
+      "id": 8,
       "type": "QlibTrain",
       "pos": [
-        2700,
+        3280,
         0
       ],
       "size": [
         460,
-        280
+        300
       ],
       "flags": {
         "pinned": true
       },
-      "order": 5,
+      "order": 6,
       "mode": 0,
       "inputs": [
         {
           "name": "dataset",
           "type": "QLIB_DATASET",
-          "link": 6,
+          "link": 15,
           "shape": 7
         },
         {
           "name": "model",
           "type": "QLIB_MODEL_SPEC",
-          "link": 8,
+          "link": 19,
           "shape": 7
         },
         {
@@ -561,13 +889,14 @@
         {
           "name": "features",
           "type": "QLIB_FEATURE_SET",
-          "link": 7,
+          "link": 16,
           "shape": 7
         },
         {
           "name": "control",
           "type": "QLIB_CONTROL",
-          "link": null
+          "link": 6,
+          "shape": 7
         }
       ],
       "outputs": [
@@ -576,7 +905,7 @@
           "type": "QLIB_TRAINED_MODEL",
           "slot_index": 0,
           "links": [
-            9
+            20
           ]
         },
         {
@@ -602,32 +931,32 @@
       "bgcolor": "#4d3f26"
     },
     {
-      "id": 8,
+      "id": 9,
       "type": "QlibPredict",
       "pos": [
-        3240,
+        3820,
         0
       ],
       "size": [
         460,
-        240
+        260
       ],
       "flags": {
         "pinned": true
       },
-      "order": 6,
+      "order": 7,
       "mode": 0,
       "inputs": [
         {
           "name": "trained_model",
           "type": "QLIB_TRAINED_MODEL",
-          "link": 9,
+          "link": 20,
           "shape": 7
         },
         {
           "name": "dataset",
           "type": "QLIB_DATASET",
-          "link": 10,
+          "link": 17,
           "shape": 7
         },
         {
@@ -641,13 +970,14 @@
         {
           "name": "features",
           "type": "QLIB_FEATURE_SET",
-          "link": 11,
+          "link": 18,
           "shape": 7
         },
         {
           "name": "control",
           "type": "QLIB_CONTROL",
-          "link": null
+          "link": 7,
+          "shape": 7
         }
       ],
       "outputs": [
@@ -656,7 +986,7 @@
           "type": "QLIB_SIGNAL_TABLE",
           "slot_index": 0,
           "links": [
-            12
+            21
           ]
         }
       ],
@@ -676,26 +1006,26 @@
       "bgcolor": "#4d3f26"
     },
     {
-      "id": 9,
+      "id": 10,
       "type": "QlibBacktest",
       "pos": [
-        3780,
+        4360,
         0
       ],
       "size": [
         460,
-        260
+        280
       ],
       "flags": {
         "pinned": true
       },
-      "order": 7,
+      "order": 8,
       "mode": 0,
       "inputs": [
         {
           "name": "signal",
           "type": "QLIB_SIGNAL_TABLE",
-          "link": 12,
+          "link": 21,
           "shape": 7
         },
         {
@@ -725,7 +1055,8 @@
         {
           "name": "control",
           "type": "QLIB_CONTROL",
-          "link": null
+          "link": 8,
+          "shape": 7
         }
       ],
       "outputs": [
@@ -734,7 +1065,7 @@
           "type": "QLIB_BACKTEST_RESULT",
           "slot_index": 0,
           "links": [
-            13
+            22
           ]
         },
         {
@@ -764,26 +1095,26 @@
       "bgcolor": "#593827"
     },
     {
-      "id": 10,
+      "id": 11,
       "type": "QlibReport",
       "pos": [
-        4320,
+        4900,
         0
       ],
       "size": [
         460,
-        300
+        320
       ],
       "flags": {
         "pinned": true
       },
-      "order": 8,
+      "order": 9,
       "mode": 0,
       "inputs": [
         {
           "name": "backtest_result",
           "type": "QLIB_BACKTEST_RESULT",
-          "link": 13,
+          "link": 22,
           "shape": 7
         },
         {
@@ -797,7 +1128,8 @@
         {
           "name": "control",
           "type": "QLIB_CONTROL",
-          "link": null
+          "link": 9,
+          "shape": 7
         }
       ],
       "outputs": [
@@ -841,147 +1173,219 @@
       1,
       1,
       0,
+      3,
+      6,
+      "QLIB_CONTROL"
+    ],
+    [
       2,
+      1,
+      0,
+      4,
+      4,
+      "QLIB_CONTROL"
+    ],
+    [
+      3,
+      1,
+      0,
+      5,
+      5,
+      "QLIB_CONTROL"
+    ],
+    [
+      4,
+      1,
+      0,
+      6,
+      7,
+      "QLIB_CONTROL"
+    ],
+    [
+      5,
+      1,
+      0,
+      7,
+      2,
+      "QLIB_CONTROL"
+    ],
+    [
+      6,
+      1,
+      0,
+      8,
+      4,
+      "QLIB_CONTROL"
+    ],
+    [
+      7,
+      1,
+      0,
+      9,
+      4,
+      "QLIB_CONTROL"
+    ],
+    [
+      8,
+      1,
+      0,
+      10,
+      4,
+      "QLIB_CONTROL"
+    ],
+    [
+      9,
+      1,
+      0,
+      11,
+      2,
+      "QLIB_CONTROL"
+    ],
+    [
+      10,
+      2,
+      0,
+      3,
       0,
       "TUSHARE_CONFIG"
     ],
     [
-      2,
-      2,
-      0,
+      11,
       3,
+      0,
+      4,
       0,
       "MARKET_DATA"
     ],
     [
-      3,
-      3,
-      0,
+      12,
       4,
-      0,
-      "QLIB_EXPORT"
-    ],
-    [
-      4,
-      3,
       0,
       5,
       0,
       "QLIB_EXPORT"
     ],
     [
-      5,
+      13,
       4,
       0,
+      6,
+      0,
+      "QLIB_EXPORT"
+    ],
+    [
+      14,
       5,
+      0,
+      6,
       5,
       "QLIB_FEATURE_SET"
     ],
     [
+      15,
       6,
-      5,
       0,
-      7,
+      8,
       0,
       "QLIB_DATASET"
     ],
     [
-      7,
-      4,
+      16,
+      5,
       0,
-      7,
+      8,
       3,
       "QLIB_FEATURE_SET"
     ],
     [
-      8,
+      17,
       6,
       0,
+      9,
+      1,
+      "QLIB_DATASET"
+    ],
+    [
+      18,
+      5,
+      0,
+      9,
+      3,
+      "QLIB_FEATURE_SET"
+    ],
+    [
+      19,
       7,
+      0,
+      8,
       1,
       "QLIB_MODEL_SPEC"
     ],
     [
-      9,
-      7,
-      0,
+      20,
       8,
+      0,
+      9,
       0,
       "QLIB_TRAINED_MODEL"
     ],
     [
-      10,
-      5,
-      0,
-      8,
-      1,
-      "QLIB_DATASET"
-    ],
-    [
-      11,
-      4,
-      0,
-      8,
-      3,
-      "QLIB_FEATURE_SET"
-    ],
-    [
-      12,
-      8,
-      0,
+      21,
       9,
+      0,
+      10,
       0,
       "QLIB_SIGNAL_TABLE"
     ],
     [
-      13,
-      9,
-      0,
+      22,
       10,
+      0,
+      11,
       0,
       "QLIB_BACKTEST_RESULT"
     ]
   ],
   "groups": [
     {
-      "title": "数据同步与快照",
+      "title": "总控与凭证",
       "bounding": [
         -20,
         -20,
-        1540,
+        1040,
+        1100
+      ],
+      "color": "#3f789e",
+      "font_size": 24
+    },
+    {
+      "title": "数据同步与 PIT 复权",
+      "bounding": [
+        1040,
+        -20,
+        1560,
         700
       ],
       "color": "#3f789e",
       "font_size": 24
     },
     {
-      "title": "PIT 复权与 TY-Factors",
+      "title": "TY-Factors、Dataset 与训练",
       "bounding": [
-        1540,
+        2120,
         -20,
-        1100,
-        700
+        2180,
+        900
       ],
       "color": "#7f704b",
       "font_size": 24
     },
     {
-      "title": "Dataset、训练与预测",
-      "bounding": [
-        2080,
-        -20,
-        1640,
-        820
-      ],
-      "color": "#7f704b",
-      "font_size": 24
-    },
-    {
-      "title": "回测与报告",
+      "title": "预测、回测与报告",
       "bounding": [
         3740,
         -20,
-        1100,
+        1700,
         700
       ],
       "color": "#8c573b",
@@ -991,7 +1395,7 @@
   "config": {},
   "extra": {
     "workflow_name": "TY Factors Tushare PIT Workflow",
-    "description": "Tushare 日线、point-in-time 复权、TY-Factors、训练、回测和报告。"
+    "description": "TY Quant 总控统一管理 Tushare 日线、point-in-time 复权、TY-Factors、训练、回测和报告。"
   },
   "version": 0.4
 }

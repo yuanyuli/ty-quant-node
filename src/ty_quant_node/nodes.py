@@ -166,7 +166,20 @@ class QlibControl:
                 "n_drop": ("INT", {"default": 0, "min": 0}),
                 "transaction_cost_bps": ("FLOAT", {"default": 5.0, "min": 0.0}),
                 "report_dir": ("STRING", {"default": "outputs/ty_quant/report"}),
-            }
+            },
+            "optional": {
+                "ts_codes": ("STRING", {"default": "000001.SZ", "multiline": True}),
+                "start_date": ("STRING", {"default": "20240101"}),
+                "end_date": ("STRING", {"default": "20241231"}),
+                "snapshot_dir": ("STRING", {"default": "outputs/ty_quant/snapshots"}),
+                "include_events": ("BOOLEAN", {"default": True}),
+                "adjustment_policy": (["pit", "vendor_qfq", "vendor_hfq", "none"], {"default": "pit"}),
+                "incremental": ("BOOLEAN", {"default": True}),
+                "factor_set": (["ty_factors", "alpha158", "selected", "custom"], {"default": "ty_factors"}),
+                "selected_json": ("STRING", {"default": "[]"}),
+                "custom_json": ("STRING", {"default": "[]"}),
+                "factor_output_dir": ("STRING", {"default": "outputs/ty_quant/factors"}),
+            },
         }
 
     RETURN_TYPES = ("QLIB_CONTROL",)
@@ -191,6 +204,17 @@ class QlibControl:
         n_drop=0,
         transaction_cost_bps=5.0,
         report_dir="",
+        ts_codes="",
+        start_date="",
+        end_date="",
+        snapshot_dir="",
+        include_events=True,
+        adjustment_policy="pit",
+        incremental=True,
+        factor_set="ty_factors",
+        selected_json="[]",
+        custom_json="[]",
+        factor_output_dir="",
     ):
         try:
             params = json.loads(params_json or "{}")
@@ -215,6 +239,17 @@ class QlibControl:
             "n_drop": int(n_drop),
             "transaction_cost_bps": float(transaction_cost_bps),
             "report_dir": str(report_dir),
+            "ts_codes": str(ts_codes),
+            "start_date": str(start_date),
+            "end_date": str(end_date),
+            "snapshot_dir": str(snapshot_dir),
+            "include_events": bool(include_events),
+            "adjustment_policy": str(adjustment_policy),
+            "incremental": bool(incremental),
+            "factor_set": str(factor_set),
+            "selected_json": str(selected_json),
+            "custom_json": str(custom_json),
+            "factor_output_dir": str(factor_output_dir),
         }
         return (Handle("QLIB_CONTROL", "", metadata=metadata).to_dict(),)
 
@@ -261,7 +296,10 @@ class TushareDailyFetch:
                 "end_date": ("STRING", {"default": "20241231"}),
                 "snapshot_dir": ("STRING", {"default": "outputs/ty_quant/snapshots"}),
             },
-            "optional": {"include_events": ("BOOLEAN", {"default": True})},
+            "optional": {
+                "include_events": ("BOOLEAN", {"default": True}),
+                "control": ("QLIB_CONTROL",),
+            },
         }
 
     RETURN_TYPES = ("MARKET_DATA",)
@@ -269,7 +307,13 @@ class TushareDailyFetch:
     FUNCTION = "run"
     CATEGORY = "TY Quant/Data"
 
-    def run(self, config, ts_codes, start_date, end_date, snapshot_dir, include_events=True):
+    def run(self, config, ts_codes, start_date, end_date, snapshot_dir, include_events=True, control=None):
+        values = _control_values(control)
+        ts_codes = _controlled(values, "ts_codes", ts_codes)
+        start_date = _controlled(values, "start_date", start_date)
+        end_date = _controlled(values, "end_date", end_date)
+        snapshot_dir = _controlled(values, "snapshot_dir", snapshot_dir)
+        include_events = bool(_controlled(values, "include_events", include_events))
         cfg = _handle(config)
         if cfg.kind != "TUSHARE_CONFIG":
             raise ValueError(f"TushareDailyFetch 输入类型错误: {cfg.kind}")
@@ -329,7 +373,8 @@ class TushareToQlib:
                 "adjustment_policy": (["pit", "vendor_qfq", "vendor_hfq", "none"],),
                 "output_dir": ("STRING", {"default": "outputs/ty_quant/provider"}),
                 "incremental": ("BOOLEAN", {"default": True}),
-            }
+            },
+            "optional": {"control": ("QLIB_CONTROL",)},
         }
 
     RETURN_TYPES = ("QLIB_EXPORT",)
@@ -337,7 +382,11 @@ class TushareToQlib:
     FUNCTION = "run"
     CATEGORY = "TY Quant/Data"
 
-    def run(self, market_data, adjustment_policy="pit", output_dir="", incremental=True):
+    def run(self, market_data, adjustment_policy="pit", output_dir="", incremental=True, control=None):
+        values = _control_values(control)
+        adjustment_policy = _controlled(values, "adjustment_policy", adjustment_policy)
+        output_dir = _controlled(values, "output_root", output_dir)
+        incremental = bool(_controlled(values, "incremental", incremental))
         handle = _handle(market_data)
         if handle.kind != "MARKET_DATA":
             raise ValueError(f"TushareToQlib 输入类型错误: {handle.kind}")
@@ -396,7 +445,8 @@ class TYFactorCompute:
                 "selected_json": ("STRING", {"default": "[]"}),
                 "custom_json": ("STRING", {"default": "[]"}),
                 "output_dir": ("STRING", {"default": "outputs/ty_quant/factors"}),
-            }
+            },
+            "optional": {"control": ("QLIB_CONTROL",)},
         }
 
     RETURN_TYPES = ("QLIB_FEATURE_SET", "STRING")
@@ -404,7 +454,12 @@ class TYFactorCompute:
     FUNCTION = "run"
     CATEGORY = "TY Quant/Factors"
 
-    def run(self, export, factor_set="ty_factors", selected_json="[]", custom_json="[]", output_dir=""):
+    def run(self, export, factor_set="ty_factors", selected_json="[]", custom_json="[]", output_dir="", control=None):
+        values = _control_values(control)
+        factor_set = _controlled(values, "factor_set", factor_set)
+        selected_json = _controlled(values, "selected_json", selected_json)
+        custom_json = _controlled(values, "custom_json", custom_json)
+        output_dir = _controlled(values, "factor_output_dir", output_dir)
         handle = _handle(export)
         if handle.kind != "QLIB_EXPORT":
             raise ValueError(f"TYFactorCompute 输入类型错误: {handle.kind}")

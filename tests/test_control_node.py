@@ -56,3 +56,32 @@ def test_model_reads_model_settings_from_control(tmp_path):
 
     assert model["metadata"]["model_type"] == "lightgbm"
     assert model["metadata"]["params"] == {"num_leaves": 7}
+
+
+def test_control_carries_tushare_pit_and_factor_settings(tmp_path):
+    control = _control(
+        tmp_path,
+        ts_codes="000001.SZ,600000.SH",
+        start_date="20240101",
+        end_date="20241231",
+        snapshot_dir=str(tmp_path / "snapshots"),
+        include_events=False,
+        adjustment_policy="pit",
+        incremental=False,
+        factor_set="selected",
+        selected_json='["TY_MOM_5"]',
+        custom_json="[]",
+        factor_output_dir=str(tmp_path / "factors"),
+    )
+
+    metadata = control["metadata"]
+    assert metadata["ts_codes"] == "000001.SZ,600000.SH"
+    assert metadata["start_date"] == "20240101"
+    assert metadata["end_date"] == "20241231"
+    assert metadata["snapshot_dir"] == str(tmp_path / "snapshots")
+    assert metadata["include_events"] is False
+    assert metadata["adjustment_policy"] == "pit"
+    assert metadata["incremental"] is False
+    assert metadata["factor_set"] == "selected"
+    assert metadata["selected_json"] == '["TY_MOM_5"]'
+    assert metadata["factor_output_dir"] == str(tmp_path / "factors")

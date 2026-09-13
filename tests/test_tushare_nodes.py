@@ -2,7 +2,29 @@ import json
 
 import pandas as pd
 
-from ty_quant_node.nodes import TushareConfig, TushareDailyFetch, TushareToQlib
+from ty_quant_node.nodes import QlibControl, TushareConfig, TushareDailyFetch, TushareToQlib
+
+
+def _control(tmp_path, **overrides):
+    values = {
+        "csv_path": "",
+        "adjustment": "qfq",
+        "output_root": str(tmp_path / "provider"),
+        "train_start": "",
+        "train_end": "",
+        "test_start": "",
+        "test_end": "",
+        "model_type": "linear",
+        "params_json": "{}",
+        "artifact_dir": str(tmp_path / "model"),
+        "segment": "test",
+        "topk": 1,
+        "n_drop": 0,
+        "transaction_cost_bps": 5.0,
+        "report_dir": str(tmp_path / "report"),
+    }
+    values.update(overrides)
+    return QlibControl().run(**values)[0]
 
 
 class _FakeSource:
@@ -84,3 +106,28 @@ def test_vendor_factor_fallback_is_marked_non_pit(monkeypatch, tmp_path):
     exported = TushareToQlib().run(market, "pit", str(tmp_path / "provider"), True)[0]
     assert exported["metadata"]["point_in_time"] is False
     assert exported["metadata"]["adjustment_source"] == "vendor_adj_factor"
+
+
+def test_tushare_fetch_uses_controlled_query_values(monkeypatch, tmp_path):
+    calls = []
+
+    class _ControlledSource(_FakeSource):
+        def fetch(self, codes, start, end, *, include_events=False):
+            calls.append((codes, start, end, include_events))
+            return super().fetch(codes, start, end, include_events=include_events)
+
+    monkeypatch.setattr("ty_quant_node.nodes.TushareDailySource", _ControlledSource)
+    config = TushareConfig().run("environment", "TUSHARE_TOKEN", 3)[0]
+    control = _control(
+        tmp_path,
+        ts_codes="000001.SZ;600000.SH",
+        start_date="20240102",
+        end_date="20240103",
+        snapshot_dir=str(tmp_path / "controlled-snapshot"),
+        include_events=False,
+    )
+
+    TushareDailyFetch().run(config, "WRONG.SZ", "19990101", "19990102", str(tmp_path / "wrong"), True, control=control)
+
+    assert calls == [(["000001.SZ", "600000.SH"], "20240102", "20240103", False)]
+    assert (tmp_path / "controlled-snapshot" / "manifest.json").exists()

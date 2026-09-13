@@ -48,15 +48,19 @@ ty_volume(t) = volume_raw(t) / ty_split_factor(t)
 
 只保存 `token_source=environment`、token 环境变量名和请求重试次数；token 只从 ComfyUI 进程环境读取，不能进入句柄 metadata、workflow、日志和 artifact。
 
+### `QlibControl`
+
+总控句柄除本地 CSV、Dataset、模型、回测字段外，还保存 `ts_codes`、`start_date`、`end_date`、`snapshot_dir`、`include_events`、`adjustment_policy`、`incremental`、`factor_set`、`selected_json`、`custom_json` 和 `factor_output_dir`。连接总控的节点以这些字段覆盖自身 widgets；没有总控连接时保留独立节点调用的原有默认值。凭证节点不接受总控覆盖，token 仍只从环境变量读取。
+
 ### `TushareDailyFetch`
 
-输入：`TUSHARE_CONFIG`、逗号/分号/换行分隔股票代码、起止日期、缓存/快照目录，以及可选的 `include_events`。
+输入：`TUSHARE_CONFIG`、逗号/分号/换行分隔股票代码、起止日期、缓存/快照目录，以及可选的 `include_events`、`QLIB_CONTROL`。
 
 输出：`MARKET_DATA`，路径指向 raw parquet 和事件快照 manifest，不直接输出 Qlib `.bin`。默认拉取 `daily`、`adj_factor`，支持可选的分红送转接口；日线和 factor 按 `instrument + datetime` 一对一校验。
 
 ### `TushareToQlib`
 
-输入：`MARKET_DATA`。
+输入：`MARKET_DATA`，以及可选的 `QLIB_CONTROL`。
 
 参数：`adjustment_policy`（`pit`、`vendor_qfq`、`vendor_hfq`、`none`）、anchor/版本策略、输出目录、是否增量。
 
@@ -64,7 +68,7 @@ ty_volume(t) = volume_raw(t) / ty_split_factor(t)
 
 ### `TYFactorCompute`
 
-输入：`QLIB_EXPORT`。
+输入：`QLIB_EXPORT`，以及可选的 `QLIB_CONTROL`。
 
 参数：`factor_set`（`ty_factors`、`alpha158`、`selected`、`custom`）、因子选择 JSON、表达式 JSON、预热窗口、输出目录。
 

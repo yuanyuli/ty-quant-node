@@ -23,6 +23,12 @@ def test_tushare_config_exposes_environment_name_without_accepting_raw_token():
     assert "token" not in required
 
 
+def test_data_and_factor_nodes_expose_optional_control_input():
+    assert TushareDailyFetch.INPUT_TYPES()["optional"]["control"] == ("QLIB_CONTROL",)
+    assert TushareToQlib.INPUT_TYPES()["optional"]["control"] == ("QLIB_CONTROL",)
+    assert TYFactorCompute.INPUT_TYPES()["optional"]["control"] == ("QLIB_CONTROL",)
+
+
 def test_node_outputs_have_stable_display_names():
     assert TushareDailyFetch.RETURN_NAMES == ("行情快照",)
     assert TushareToQlib.RETURN_NAMES == ("Qlib 数据",)

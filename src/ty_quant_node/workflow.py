@@ -22,6 +22,7 @@ EDITOR_FIELDS = {
     "version",
 }
 PRIMITIVE_TYPES = {"STRING", "INT", "FLOAT", "BOOLEAN", "COMBO", "TY_DATE"}
+BUILTIN_NODE_SPECS = {"PreviewImage": {"inputs": [("images", ("IMAGE",))], "outputs": ("IMAGE",)}}
 
 
 def _type_name(spec: tuple[Any, ...]) -> str:
@@ -45,6 +46,8 @@ def _default_value(spec: tuple[Any, ...]) -> Any:
 
 
 def _input_specs(node_type: str) -> list[tuple[str, tuple[Any, ...]]]:
+    if node_type in BUILTIN_NODE_SPECS:
+        return list(BUILTIN_NODE_SPECS[node_type]["inputs"])
     cls = NODE_CLASS_MAPPINGS[node_type]
     definitions = cls.INPUT_TYPES()
     result: list[tuple[str, tuple[Any, ...]]] = []
@@ -54,6 +57,8 @@ def _input_specs(node_type: str) -> list[tuple[str, tuple[Any, ...]]]:
 
 
 def _output_types(node_type: str) -> tuple[str, ...]:
+    if node_type in BUILTIN_NODE_SPECS:
+        return tuple(BUILTIN_NODE_SPECS[node_type]["outputs"])
     return tuple(str(value) for value in NODE_CLASS_MAPPINGS[node_type].RETURN_TYPES)
 
 
@@ -339,14 +344,16 @@ def build_learning_workflow(artifact_root: str) -> dict[str, Any]:
         "adjustment_mode": "pit", "output_dir": str(root / "provider"),
         "instrument": "", "lookback": 120,
     }
-    links = [_link(1, (1, 0), (2, 3), "MARKET_DATA"), _link(2, (1, 0), (3, 0), "MARKET_DATA"), _link(3, (3, 0), (4, 4), "QLIB_EXPORT")]
-    links_by_input = {(2, "market_data"): 1, (3, "market_data"): 2, (4, "qlib_export"): 3}
-    links_by_output = {1: {0: [1, 2]}, 3: {0: [3]}}
+    links = [_link(1, (1, 0), (2, 3), "MARKET_DATA"), _link(2, (1, 0), (3, 0), "MARKET_DATA"), _link(3, (3, 0), (4, 4), "QLIB_EXPORT"), _link(4, (2, 0), (5, 0), "IMAGE"), _link(5, (4, 0), (6, 0), "IMAGE")]
+    links_by_input = {(2, "market_data"): 1, (3, "market_data"): 2, (4, "qlib_export"): 3, (5, "images"): 4, (6, "images"): 5}
+    links_by_output = {1: {0: [1, 2]}, 2: {0: [4]}, 3: {0: [3]}, 4: {0: [5]}}
     specs = [
         (1, "TushareProvider", (0, 0), (460, 360), 0, "1. Tushare 数据源", "#276b74", "#1d4d53"),
         (2, "TYDataInspect", (540, 0), (460, 280), 1, "2. 查看原始快照", "#3b6b8c", "#254b63"),
         (3, "TushareToQlib", (1080, 0), (460, 250), 2, "3. 转换为 Qlib", "#356b8c", "#254b63"),
         (4, "TYDataInspect", (1620, 0), (460, 280), 3, "4. 查看 Qlib provider", "#3b6b8c", "#254b63"),
+        (5, "PreviewImage", (540, 330), (300, 300), 4, "原始数据 K 线", "#3b6b8c", "#254b63"),
+        (6, "PreviewImage", (1620, 330), (300, 300), 5, "Qlib 数据 K 线", "#3b6b8c", "#254b63"),
     ]
     nodes = [_make_node(node_id, node_type, dict(values), {name: link for (target, name), link in links_by_input.items() if target == node_id}, links_by_output.get(node_id, {}), position=position, size=size, order=order, title=title, color=color, bgcolor=bgcolor) for node_id, node_type, position, size, order, title, color, bgcolor in specs]
     for node in nodes:
@@ -359,7 +366,7 @@ def build_learning_workflow(artifact_root: str) -> dict[str, Any]:
             if name in node["widgets_values_named"]:
                 widget_index = sum(1 for candidate in node["inputs"][:index] if "widget" in candidate)
                 node["widgets_values"][widget_index] = node["widgets_values_named"][name]
-    return {"id": str(uuid.UUID("5d91bce2-2dd4-4b64-9d1c-25bda1d0c004")), "revision": 0, "last_node_id": 4, "last_link_id": 3, "nodes": nodes, "links": links,
+    return {"id": str(uuid.UUID("5d91bce2-2dd4-4b64-9d1c-25bda1d0c004")), "revision": 0, "last_node_id": 6, "last_link_id": 5, "nodes": nodes, "links": links,
         "groups": [{"title": "学习：Tushare 原始数据", "bounding": [-20, -20, 1020, 700], "color": "#3f789e", "font_size": 24}, {"title": "学习：Qlib provider", "bounding": [1060, -20, 1060, 700], "color": "#3f789e", "font_size": 24}],
         "config": {}, "extra": {"workflow_name": "TY Qlib Learning Data Flow", "description": "只学习 TushareProvider、Qlib 导出和数据审计。", "control_schema_version": "2"}, "version": 0.4}
 
@@ -386,7 +393,7 @@ def validate_workflow(workflow: dict[str, Any]) -> list[str]:
         node_by_id[node_id] = node
         required_fields = {"id", "type", "pos", "size", "flags", "order", "mode", "inputs", "outputs", "properties", "widgets_values"}
         errors.extend(f"节点 {node_type} 缺少字段: {field}" for field in sorted(required_fields - set(node)))
-        if node_type not in NODE_CLASS_MAPPINGS:
+        if node_type not in NODE_CLASS_MAPPINGS and node_type not in BUILTIN_NODE_SPECS:
             errors.append(f"未知节点类型: {node_type}")
             continue
         expected_inputs = _input_specs(node_type)

@@ -102,6 +102,6 @@ def test_learning_workflow_is_minimal_and_connected(tmp_path):
     workflow = build_learning_workflow(str(tmp_path / "artifacts"))
     assert validate_workflow(workflow) == []
     prompt = workflow_to_prompt(workflow)
-    assert [prompt[str(i)]["class_type"] for i in range(1, 5)] == ["TushareProvider", "TYDataInspect", "TushareToQlib", "TYDataInspect"]
+    assert [prompt[str(i)]["class_type"] for i in range(1, 7)] == ["TushareProvider", "TYDataInspect", "TushareToQlib", "TYDataInspect", "PreviewImage", "PreviewImage"]
     assert prompt["2"]["inputs"]["market_data"] == ["1", 0]
     assert prompt["4"]["inputs"]["qlib_export"] == ["3", 0]

@@ -1,8 +1,8 @@
 {
   "id": "5d91bce2-2dd4-4b64-9d1c-25bda1d0c004",
   "revision": 0,
-  "last_node_id": 4,
-  "last_link_id": 3,
+  "last_node_id": 6,
+  "last_link_id": 5,
   "nodes": [
     {
       "id": 1,
@@ -219,7 +219,9 @@
           "name": "IMAGE",
           "type": "IMAGE",
           "slot_index": 0,
-          "links": null
+          "links": [
+            4
+          ]
         },
         {
           "name": "STRING",
@@ -228,9 +230,15 @@
           "links": null
         },
         {
+          "name": "STRING",
+          "type": "STRING",
+          "slot_index": 2,
+          "links": null
+        },
+        {
           "name": "DATA_AUDIT",
           "type": "DATA_AUDIT",
-          "slot_index": 2,
+          "slot_index": 3,
           "links": null
         }
       ],
@@ -393,7 +401,9 @@
           "name": "IMAGE",
           "type": "IMAGE",
           "slot_index": 0,
-          "links": null
+          "links": [
+            5
+          ]
         },
         {
           "name": "STRING",
@@ -402,9 +412,15 @@
           "links": null
         },
         {
+          "name": "STRING",
+          "type": "STRING",
+          "slot_index": 2,
+          "links": null
+        },
+        {
           "name": "DATA_AUDIT",
           "type": "DATA_AUDIT",
-          "slot_index": 2,
+          "slot_index": 3,
           "links": null
         }
       ],
@@ -424,6 +440,92 @@
         "lookback": 120,
         "output_dir": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\artifacts\\learning\\inspect_qlib"
       },
+      "color": "#3b6b8c",
+      "bgcolor": "#254b63"
+    },
+    {
+      "id": 5,
+      "type": "PreviewImage",
+      "pos": [
+        540,
+        330
+      ],
+      "size": [
+        300,
+        300
+      ],
+      "flags": {
+        "pinned": false
+      },
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 4,
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": null
+        }
+      ],
+      "title": "原始数据 K 线",
+      "properties": {
+        "cnr_id": "ty-quant-node",
+        "ver": "0.1.0",
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": [],
+      "widgets_values_named": {},
+      "color": "#3b6b8c",
+      "bgcolor": "#254b63"
+    },
+    {
+      "id": 6,
+      "type": "PreviewImage",
+      "pos": [
+        1620,
+        330
+      ],
+      "size": [
+        300,
+        300
+      ],
+      "flags": {
+        "pinned": false
+      },
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 5,
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": null
+        }
+      ],
+      "title": "Qlib 数据 K 线",
+      "properties": {
+        "cnr_id": "ty-quant-node",
+        "ver": "0.1.0",
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": [],
+      "widgets_values_named": {},
       "color": "#3b6b8c",
       "bgcolor": "#254b63"
     }
@@ -452,6 +554,22 @@
       4,
       4,
       "QLIB_EXPORT"
+    ],
+    [
+      4,
+      2,
+      0,
+      5,
+      0,
+      "IMAGE"
+    ],
+    [
+      5,
+      4,
+      0,
+      6,
+      0,
+      "IMAGE"
     ]
   ],
   "groups": [

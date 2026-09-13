@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from ..core.artifacts import artifact_transaction, sha256_file
+from ..core.artifacts import artifact_transaction, sha256_file, verify_manifest_file
 
 
 @dataclass(frozen=True)
@@ -105,10 +105,19 @@ def load_model(handle, dataset_bundle=None) -> TrainedModel:
     model_type = str(handle.metadata.get("model_type", "linear"))
     feature_names = list(handle.metadata.get("feature_names") or ["feature_return"])
     spec = ModelSpec(model_type, dict(handle.metadata.get("params") or {}))
+    manifest_path = path / "manifest.json"
+    manifest = None
+    if manifest_path.exists():
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest_files = manifest.get("files") if isinstance(manifest, dict) else None
     if model_type == "linear":
+        if isinstance(manifest_files, dict) and "model" in manifest_files:
+            verify_manifest_file(path, manifest, "model", relative_path="model.json")
         payload = json.loads((path / "model.json").read_text(encoding="utf-8"))
         model = np.asarray(payload["coefficients"], dtype=float)
     elif model_type == "lightgbm":
+        if isinstance(manifest_files, dict) and "model" in manifest_files:
+            verify_manifest_file(path, manifest, "model", relative_path="model.txt")
         from lightgbm import Booster
 
         model = Booster(model_file=str(path / "model.txt"))

@@ -15,7 +15,7 @@ from .backend.qlib_backend import build_dataset_from_export, build_dataset_from_
 from .backend.model_backend import ModelSpec, train_model, predict_model, load_model
 from .backend.backtest_backend import backtest, BacktestResult
 from .core.report import create_report, image_to_tensor
-from .core.artifacts import artifact_transaction, atomic_file, sha256_file
+from .core.artifacts import artifact_transaction, atomic_file, sha256_file, verify_manifest_file
 from .core.security import resolve_node_path
 from .factors.compute import compute_ty_factors
 
@@ -792,7 +792,17 @@ class QlibBacktest:
         n_drop = _controlled(values, "n_drop", n_drop)
         transaction_cost_bps = _controlled(values, "transaction_cost_bps", transaction_cost_bps)
         signal_handle = _handle(signal)
+        signal_path = Path(signal_handle.path)
+        signal_manifest_path = signal_path.parent / "manifest.json"
+        signal_manifest = None
+        if signal_manifest_path.exists():
+            candidate = json.loads(signal_manifest_path.read_text(encoding="utf-8"))
+            if candidate.get("artifact_type") == "prediction" or "signal" in (candidate.get("files") or {}):
+                verify_manifest_file(signal_path.parent, candidate, "signal", relative_path=signal_path.name)
+                signal_manifest = candidate
         signal_hash = str(signal_handle.metadata.get("signal_hash") or _file_hash(signal_handle.path))
+        if signal_manifest is not None:
+            signal_hash = str(signal_manifest["files"]["signal"])
         run_key = _stable_json_hash(
             {
                 "signal_hash": signal_hash,
@@ -850,9 +860,18 @@ class QlibReport:
         output_dir = _controlled(values, "report_dir", output_dir)
         output_dir = str(resolve_node_path(output_dir))
         handle = _handle(backtest_result)
-        metrics_path = Path(handle.path) / "metrics.json"
+        backtest_path = Path(handle.path)
+        backtest_manifest_path = backtest_path / "manifest.json"
+        if backtest_manifest_path.exists():
+            backtest_manifest = json.loads(backtest_manifest_path.read_text(encoding="utf-8"))
+            files = backtest_manifest.get("files") or {}
+            if not {"metrics", "equity"}.issubset(files):
+                raise ValueError("回测 artifact manifest 缺少 metrics/equity hash")
+            verify_manifest_file(backtest_path, backtest_manifest, "metrics", relative_path="metrics.json")
+            verify_manifest_file(backtest_path, backtest_manifest, "equity", relative_path="equity.csv")
+        metrics_path = backtest_path / "metrics.json"
         metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
-        equity = pd.read_csv(Path(handle.path) / "equity.csv")
+        equity = pd.read_csv(backtest_path / "equity.csv")
         result = BacktestResult(metrics, equity, pd.DataFrame())
         run_key = _stable_json_hash({"backtest": _file_hash(metrics_path), "output_dir": str(Path(output_dir).resolve())})
         target = _versioned_run_target(output_dir, run_key)

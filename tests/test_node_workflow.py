@@ -77,6 +77,51 @@ def test_prediction_artifact_is_versioned_and_reused(tmp_path, market_frame):
     assert manifest["files"]["signal"] == first["metadata"]["files"]["signal"]
 
 
+def test_predict_rejects_tampered_model_artifact(tmp_path, market_frame):
+    csv_path = tmp_path / "market.csv"
+    market_frame.to_csv(csv_path, index=False)
+    export = QlibExport().run(str(csv_path), "qfq", str(tmp_path / "provider"))[0]
+    dataset = QlibDataset().run(export, "2024-01-01", "2024-01-03", "2024-01-04", "2024-01-06")[0]
+    model = QlibModel().run("linear", "{}")[0]
+    trained = QlibTrain().run(dataset, model, str(tmp_path / "model"))[0]
+    model_path = Path(trained["path"]) / "model.json"
+    model_path.write_bytes(model_path.read_bytes() + b"tampered")
+
+    with pytest.raises(ValueError, match="hash"):
+        QlibPredict().run(trained, dataset, "test")
+
+
+def test_backtest_rejects_tampered_prediction_artifact(tmp_path, market_frame):
+    csv_path = tmp_path / "market.csv"
+    market_frame.to_csv(csv_path, index=False)
+    export = QlibExport().run(str(csv_path), "qfq", str(tmp_path / "provider"))[0]
+    dataset = QlibDataset().run(export, "2024-01-01", "2024-01-03", "2024-01-04", "2024-01-06")[0]
+    model = QlibModel().run("linear", "{}")[0]
+    trained = QlibTrain().run(dataset, model, str(tmp_path / "model"))[0]
+    signal = QlibPredict().run(trained, dataset, "test")[0]
+    signal_path = Path(signal["path"])
+    signal_path.write_bytes(signal_path.read_bytes() + b"tampered")
+
+    with pytest.raises(ValueError, match="hash"):
+        QlibBacktest().run(signal, 1, 0, 5.0)
+
+
+def test_report_rejects_tampered_backtest_artifact(tmp_path, market_frame):
+    csv_path = tmp_path / "market.csv"
+    market_frame.to_csv(csv_path, index=False)
+    export = QlibExport().run(str(csv_path), "qfq", str(tmp_path / "provider"))[0]
+    dataset = QlibDataset().run(export, "2024-01-01", "2024-01-03", "2024-01-04", "2024-01-06")[0]
+    model = QlibModel().run("linear", "{}")[0]
+    trained = QlibTrain().run(dataset, model, str(tmp_path / "model"))[0]
+    signal = QlibPredict().run(trained, dataset, "test")[0]
+    result = QlibBacktest().run(signal, 1, 0, 5.0)[0]
+    metrics_path = Path(result["path"]) / "metrics.json"
+    metrics_path.write_bytes(metrics_path.read_bytes() + b"tampered")
+
+    with pytest.raises(ValueError, match="hash"):
+        QlibReport().run(result, str(tmp_path / "report"))
+
+
 def test_backtest_and_report_reuse_matching_run_versions(tmp_path, market_frame):
     csv_path = tmp_path / "market.csv"
     market_frame.to_csv(csv_path, index=False)

@@ -36,6 +36,8 @@ TushareConfig -> TushareDailyFetch -> TushareToQlib -> TYFactorCompute
 
 预测信号会写入训练模型目录下的 `signals/<run_key>/signal.parquet`，同目录的 `manifest.json` 记录模型、Dataset、因子集、segment、列契约和 `files.signal` SHA-256。相同运行键会校验文件 hash 后复用；运行键变化会生成新的目录，已存在但内容不一致的目录会拒绝覆盖。这样回测引用的信号始终对应一个可定位的模型与数据版本。
 
+模型加载、回测和报告在读取声明了文件 hash 的 artifact 前都会重新计算 SHA-256；模型文件、预测信号、回测指标和净值曲线任一被修改都会在消费边界抛出完整性错误，不会继续产出新的结果。没有文件 hash 的早期简化 artifact 保留读取兼容性，新生成的 artifact 始终写入完整 manifest。
+
 ## 数据与复权口径
 
 输入可以是 CSV 或 Parquet。原始字段至少包括：`instrument`、`datetime`、`open_raw`、`high_raw`、`low_raw`、`close_raw`、`volume_raw`、`adj_factor`。Tushare 字段 `ts_code/trade_date/open/high/low/close/vol/amount` 会自动规范化。

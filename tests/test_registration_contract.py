@@ -1,5 +1,7 @@
 import importlib
 import sys
+import types
+import pytest
 from ty_quant_node.nodes import QlibControl, QlibRuntime, QlibReport
 
 
@@ -39,6 +41,16 @@ def test_runtime_returns_compat_handle_without_qlib(monkeypatch, tmp_path):
     assert handle["metadata"]["qlib_version"] == "unavailable"
     assert handle["metadata"]["dataset_backend"] == "compat"
     assert handle["path"] == str(tmp_path.resolve())
+
+
+def test_runtime_wraps_qlib_initialization_error(monkeypatch, tmp_path):
+    def fail_init(**_kwargs):
+        raise ValueError("provider 配置无效")
+
+    monkeypatch.setitem(sys.modules, "qlib", types.SimpleNamespace(init=fail_init))
+
+    with pytest.raises(RuntimeError, match="QlibRuntime 初始化失败"):
+        QlibRuntime().run(str(tmp_path), "cn", 42, "")
 
 
 def test_report_is_comfyui_output_node():

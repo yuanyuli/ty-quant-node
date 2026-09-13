@@ -1,4 +1,6 @@
-from ty_quant_node.nodes import TushareConfig, TushareDailyFetch, TushareToQlib, TYFactorCompute
+import pytest
+
+from ty_quant_node.nodes import QlibExport, TushareConfig, TushareDailyFetch, TushareToQlib, TYFactorCompute
 
 
 def test_tushare_fetch_outputs_market_data_and_conversion_outputs_qlib_export():
@@ -25,3 +27,8 @@ def test_node_outputs_have_stable_display_names():
     assert TushareDailyFetch.RETURN_NAMES == ("行情快照",)
     assert TushareToQlib.RETURN_NAMES == ("Qlib 数据",)
     assert TYFactorCompute.RETURN_NAMES == ("因子特征", "摘要")
+
+
+def test_qlib_export_rejects_remote_csv_before_reader_runs(tmp_path):
+    with pytest.raises(ValueError, match="本地文件路径"):
+        QlibExport().run("https://example.com/market.csv", "qfq", str(tmp_path / "provider"))

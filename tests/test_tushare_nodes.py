@@ -30,12 +30,15 @@ def test_tushare_fetch_and_conversion_write_versioned_provider(monkeypatch, tmp_
     assert market["metadata"]["raw_hash"]
     assert market["metadata"]["factor_hash"]
     assert market["metadata"]["events_hash"]
+    assert market["metadata"]["files"]["raw"]
+    assert market["metadata"]["files"]["events"]
     assert "secret-token" not in json.dumps(market)
     exported = TushareToQlib().run(market, "pit", str(tmp_path / "provider"), True)[0]
     assert exported["kind"] == "QLIB_EXPORT"
     manifest = json.loads((tmp_path / "provider" / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["point_in_time"] is True
     assert manifest["snapshot_id"] == "snapshot-test"
+    assert manifest["files"]["dataset"]
     assert (tmp_path / "provider" / "features" / "000001.sz" / "ty_close.day.bin").exists()
 
 

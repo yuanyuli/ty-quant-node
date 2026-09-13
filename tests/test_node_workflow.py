@@ -25,6 +25,9 @@ def test_nodes_execute_complete_fixture_workflow(tmp_path, market_frame):
     assert (tmp_path / "model" / "manifest.json").exists()
     assert (tmp_path / "model" / "backtest" / "manifest.json").exists()
     assert (tmp_path / "report" / "manifest.json").exists()
+    assert json.loads((tmp_path / "model" / "manifest.json").read_text(encoding="utf-8"))["files"]["model"]
+    assert json.loads((tmp_path / "model" / "backtest" / "manifest.json").read_text(encoding="utf-8"))["files"]["metrics"]
+    assert json.loads((tmp_path / "report" / "manifest.json").read_text(encoding="utf-8"))["files"]["equity"]
 
 
 def test_dataset_rejects_partial_date_configuration(tmp_path, market_frame):

@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from ..core.handles import Handle
-from ..core.artifacts import artifact_transaction
+from ..core.artifacts import artifact_transaction, sha256_file
 from ..data import apply_adjustment
 
 
@@ -173,6 +173,22 @@ def export_qlib(
 
 def check_provider_consistency(provider_dir: str | Path) -> dict:
     provider = Path(provider_dir)
+    manifest_path = provider / "manifest.json"
+    if manifest_path.exists():
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise ValueError(f"Qlib manifest 无法读取: {manifest_path}") from exc
+        manifest_files = manifest.get("files") or {}
+        file_paths = {
+            "calendar": provider / "calendars" / "day.txt",
+            "instruments": provider / "instruments" / "all.txt",
+            "dataset": provider / "dataset.parquet",
+        }
+        for name, expected in manifest_files.items():
+            path = file_paths.get(name)
+            if path is None or not path.exists() or sha256_file(path) != str(expected):
+                raise ValueError(f"Qlib provider 文件 hash 不匹配: {name}")
     calendar = [line.strip() for line in (provider / "calendars" / "day.txt").read_text(encoding="utf-8").splitlines() if line.strip()]
     if calendar != sorted(calendar) or len(set(calendar)) != len(calendar):
         raise ValueError("Qlib calendar 必须严格升序且无重复")

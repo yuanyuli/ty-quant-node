@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 
 from ty_quant_node.core.handles import Handle
-from ty_quant_node.core.security import resolve_allowed_path
+from ty_quant_node.core.security import resolve_allowed_path, resolve_node_path
 from ty_quant_node.backend.market import export_qlib, check_provider_consistency
 
 
@@ -22,6 +22,18 @@ def test_path_must_stay_under_allowed_root(tmp_path):
         resolve_allowed_path(tmp_path.parent / "outside.csv", [tmp_path])
     with pytest.raises(ValueError, match="路径穿越"):
         resolve_allowed_path(tmp_path / ".." / "outside.csv", [tmp_path])
+
+
+def test_node_path_policy_uses_configured_roots_and_rejects_urls(tmp_path, monkeypatch):
+    input_path = tmp_path / "input.csv"
+    input_path.write_text("instrument,datetime\nAAA,2024-01-01\n", encoding="utf-8")
+    monkeypatch.setenv("TY_QUANT_ALLOWED_ROOTS", str(tmp_path))
+
+    assert resolve_node_path(input_path, must_exist=True) == input_path.resolve()
+    with pytest.raises(ValueError, match="本地文件路径"):
+        resolve_node_path("https://example.com/market.csv")
+    with pytest.raises(ValueError, match="白名单"):
+        resolve_node_path(tmp_path.parent / "outside.csv")
 
 
 def test_qlib_export_writes_consistent_provider(tmp_path, market_frame):
@@ -48,6 +60,16 @@ def test_qlib_reads_exported_binary_provider(tmp_path, market_frame):
     result = D.features(["AAA"], ["$close"], start_time="2024-01-01", end_time="2024-01-06", freq="day", disk_cache=0)
     assert len(result) == 6
     assert result["$close"].notna().all()
+
+
+def test_provider_consistency_rejects_tampered_manifest_file(tmp_path, market_frame):
+    provider = tmp_path / "provider"
+    export_qlib(market_frame, provider, adjustment="qfq")
+    dataset = provider / "dataset.parquet"
+    dataset.write_bytes(dataset.read_bytes() + b"tampered")
+
+    with pytest.raises(ValueError, match="hash"):
+        check_provider_consistency(provider)
 
 
 @pytest.fixture

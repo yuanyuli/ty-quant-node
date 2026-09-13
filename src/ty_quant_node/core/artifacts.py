@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+import hashlib
 import os
 from pathlib import Path
 import shutil
@@ -12,6 +13,16 @@ from collections.abc import Iterator
 
 class ArtifactConflictError(RuntimeError):
     """目标产物已存在，避免覆盖已有版本。"""
+
+
+def sha256_file(path: str | os.PathLike[str]) -> str:
+    """计算已提交或 staging 文件的 SHA-256。"""
+
+    digest = hashlib.sha256()
+    with _resolved(path).open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _resolved(path: str | os.PathLike[str]) -> Path:

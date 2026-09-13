@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from ..core.artifacts import artifact_transaction
+from ..core.artifacts import artifact_transaction, sha256_file
 
 
 @dataclass(frozen=True)
@@ -77,6 +77,8 @@ def train_model(bundle, spec: ModelSpec, artifact_dir: str | Path, *, run_key: s
             )
         else:
             model.booster_.save_model(str(staging / "model.txt"))
+        model_name = "model.json" if spec.model_type == "linear" else "model.txt"
+        manifest["files"] = {"model": sha256_file(staging / model_name)}
         (staging / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
     return TrainedModel(spec, model, bundle.feature_names, artifact)
 

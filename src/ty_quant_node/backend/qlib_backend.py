@@ -7,7 +7,7 @@ import pandas as pd
 
 from ..core.handles import Handle
 from ..data import apply_adjustment
-from .market import normalize_market_frame
+from .market import check_provider_consistency, normalize_market_frame
 
 
 @dataclass
@@ -93,6 +93,7 @@ def build_dataset_from_frame(frame: pd.DataFrame, *, adjustment="qfq", segments=
 
 def build_dataset_from_export(export_path: str | Path, *, segments=None) -> DatasetBundle:
     path = Path(export_path).resolve()
+    check_provider_consistency(path)
     manifest = json.loads((path / "manifest.json").read_text(encoding="utf-8"))
     frame = pd.read_parquet(path / "dataset.parquet")
     adjustment = str(manifest.get("adjustment", "qfq"))
@@ -112,6 +113,7 @@ def build_dataset_from_feature_set(
     """将 QLIB_FEATURE_SET 与复权 close 合并为可训练 DatasetH。"""
     export = Path(export_path).resolve()
     feature_root = Path(feature_path).resolve()
+    check_provider_consistency(export)
     export_manifest = json.loads((export / "manifest.json").read_text(encoding="utf-8"))
     feature_manifest = json.loads((feature_root / "manifest.json").read_text(encoding="utf-8"))
     market = pd.read_parquet(export / "dataset.parquet")

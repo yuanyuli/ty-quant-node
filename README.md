@@ -89,6 +89,14 @@ cmd /c mklink /J "E:\ComfyUI_windows_portable-G314\ComfyUI\custom_nodes\ty-quant
 
 重启 ComfyUI 后端，搜索 `TY Quant` 节点；修改 Python 后重新启动后端，修改前端资源后刷新浏览器。示例 workflow 位于 `examples/mvp_workflow.json`（本地 CSV）和 `examples/ty_factors_workflow.json`（Tushare→PIT→TY-Factors），固定输入位于 `tests/fixtures/market.csv`。工作流使用完整 ComfyUI 0.4 编辑器格式；本地安装副本位于 `E:\ComfyUI_windows_portable-G314\ComfyUI\user\default\workflows\ty-qlib\`。
 
+节点只访问本地白名单路径。默认白名单包括 ComfyUI 当前工作目录和节点仓库；行情文件或 artifact 放在其他目录时，在启动 ComfyUI 的进程环境中追加根目录：
+
+```powershell
+$env:TY_QUANT_ALLOWED_ROOTS = "D:\\quant-data;D:\\quant-artifacts"
+```
+
+路径中的 URL、设备路径和 `..` 穿越会在节点读取前直接拒绝。句柄携带的路径也会重新校验，不能通过手工修改 workflow 绕过白名单。
+
 工作流结构由 `src/ty_quant_node/workflow.py` 生成和校验。独立验证使用 `uv run pytest ty-quant-node/tests -q`；本地 CSV 联调将生成 `.artifacts/comfyui-mvp/provider`、`.artifacts/comfyui-mvp/model` 和 `.artifacts/comfyui-mvp/report/equity.png`，Tushare 工作流使用 `.artifacts/ty-factors-mvp/` 下的 snapshot、provider、factors、model 和 report 子目录。
 
 ## 代码结构

@@ -11,7 +11,8 @@ import numpy as np
 import pandas as pd
 
 from ..core.handles import Handle
-from ..core.artifacts import artifact_transaction
+from ..core.artifacts import artifact_transaction, sha256_file
+from ..backend.market import check_provider_consistency
 from .registry import FactorSpec, load_alpha158_specs, load_factor_specs
 
 
@@ -152,6 +153,7 @@ def compute_ty_factors(
     data_path = provider / "dataset.parquet"
     if not manifest_path.exists() or not data_path.exists():
         raise ValueError("QLIB_EXPORT 缺少 manifest.json 或 dataset.parquet")
+    check_provider_consistency(provider)
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     if manifest.get("adjustment") == "none":
         raise ValueError("因子计算拒绝未复权 provider，请先使用 PIT 或 vendor 复权")
@@ -203,6 +205,7 @@ def compute_ty_factors(
     }
     with artifact_transaction(output) as staging:
         result.to_parquet(staging / "features.parquet", index=False)
+        output_manifest["files"] = {"features": sha256_file(staging / "features.parquet")}
         (staging / "manifest.json").write_text(
             json.dumps(output_manifest, ensure_ascii=False, indent=2, default=str),
             encoding="utf-8",

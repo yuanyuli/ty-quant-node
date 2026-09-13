@@ -18,6 +18,7 @@ def test_ty_factors_compute_from_pit_provider(tmp_path, market_frame):
     assert features["TY_MOM_5"].notna().sum() == 2
     manifest = json.loads((tmp_path / "factors" / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["factor_set"] == "ty_factors"
+    assert manifest["files"]["features"]
 
 
 def test_ty_momentum_is_current_price_over_lookback_price(tmp_path):

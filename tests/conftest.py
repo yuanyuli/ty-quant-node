@@ -1,5 +1,20 @@
+import os
+from pathlib import Path
+
 import pandas as pd
 import pytest
+
+
+@pytest.fixture(autouse=True)
+def allow_test_artifacts(monkeypatch, tmp_path):
+    """把每个测试的临时目录加入节点白名单，模拟用户显式配置。"""
+
+    configured = [str(tmp_path)]
+    existing = os.getenv("TY_QUANT_ALLOWED_ROOTS")
+    if existing:
+        configured.append(existing)
+    configured.append(str(Path.cwd()))
+    monkeypatch.setenv("TY_QUANT_ALLOWED_ROOTS", os.pathsep.join(configured))
 
 
 @pytest.fixture

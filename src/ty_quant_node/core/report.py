@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from .artifacts import artifact_transaction
+from .artifacts import artifact_transaction, sha256_file
 
 
 def create_report(result, output_dir: str | Path, *, metadata: dict | None = None):
@@ -37,6 +37,10 @@ def create_report(result, output_dir: str | Path, *, metadata: dict | None = Non
             "schema_version": "1",
             "run_key": str((metadata or {}).get("run_key", "")),
             "summary": summary,
+            "files": {
+                "equity": sha256_file(staging / "equity.png"),
+                "summary": sha256_file(staging / "summary.json"),
+            },
         }
         (staging / "manifest.json").write_text(
             json.dumps(report_manifest, ensure_ascii=False, indent=2, default=str),

@@ -15,12 +15,19 @@ from .backend.qlib_backend import build_dataset_from_export, build_dataset_from_
 from .backend.model_backend import ModelSpec, train_model, predict_model, load_model
 from .backend.backtest_backend import backtest, BacktestResult
 from .core.report import create_report, image_to_tensor
-from .core.artifacts import artifact_transaction, atomic_file
+from .core.artifacts import artifact_transaction, atomic_file, sha256_file
+from .core.security import resolve_node_path
 from .factors.compute import compute_ty_factors
 
 
 def _handle(value) -> Handle:
-    return value if isinstance(value, Handle) else Handle.from_dict(value)
+    handle = value if isinstance(value, Handle) else Handle.from_dict(value)
+    if handle.path:
+        try:
+            resolve_node_path(handle.path, must_exist=True)
+        except ValueError as exc:
+            raise ValueError(f"{handle.kind} 路径无效: {exc}") from exc
+    return handle
 
 
 def _control_values(value) -> dict:
@@ -225,18 +232,22 @@ class QlibRuntime:
     def run(self, provider_uri, region="cn", seed=42, experiment_uri=""):
         import random
         import numpy as np
-        path = str(Path(provider_uri).resolve()) if provider_uri else ""
+        path = str(resolve_node_path(provider_uri, must_exist=True)) if provider_uri else ""
+        experiment_path = str(resolve_node_path(experiment_uri)) if experiment_uri else ""
         try:
             import qlib
         except ModuleNotFoundError as exc:
             if exc.name != "qlib":
                 raise
-            return (Handle("QLIB_RUNTIME", path, metadata={"region": region, "seed": int(seed), "experiment_uri": experiment_uri, "qlib_version": "unavailable", "dataset_backend": "compat"}).to_dict(),)
+            return (Handle("QLIB_RUNTIME", path, metadata={"region": region, "seed": int(seed), "experiment_uri": experiment_path, "qlib_version": "unavailable", "dataset_backend": "compat"}).to_dict(),)
 
-        qlib.init(provider_uri=path or None, region=region, dataset_cache=None, expression_cache=None, clear_mem_cache=True)
+        try:
+            qlib.init(provider_uri=path or None, region=region, dataset_cache=None, expression_cache=None, clear_mem_cache=True)
+        except (OSError, TypeError, ValueError, NotImplementedError) as exc:
+            raise RuntimeError(f"QlibRuntime 初始化失败: {type(exc).__name__}: {exc}") from exc
         random.seed(int(seed))
         np.random.seed(int(seed))
-        return (Handle("QLIB_RUNTIME", path, metadata={"region": region, "seed": int(seed), "experiment_uri": experiment_uri, "qlib_version": getattr(qlib, "__version__", "unknown")}).to_dict(),)
+        return (Handle("QLIB_RUNTIME", path, metadata={"region": region, "seed": int(seed), "experiment_uri": experiment_path, "qlib_version": getattr(qlib, "__version__", "unknown")}).to_dict(),)
 
 
 class TushareDailyFetch:
@@ -273,6 +284,7 @@ class TushareDailyFetch:
             raise ValueError("至少提供一个股票代码")
         if not str(snapshot_dir or "").strip():
             raise ValueError("snapshot_dir 不能为空")
+        snapshot_dir = str(resolve_node_path(snapshot_dir))
         data = source.fetch(codes, start_date, end_date, include_events=bool(include_events))
         events = data.attrs.get("events") or []
         snapshot_id = source.snapshot_id(data, events)
@@ -301,6 +313,9 @@ class TushareDailyFetch:
             data.to_parquet(staging / "raw.parquet", index=False)
             if events:
                 pd.DataFrame(events).to_parquet(staging / "events.parquet", index=False)
+            manifest["files"] = {"raw": sha256_file(staging / "raw.parquet")}
+            if events:
+                manifest["files"]["events"] = sha256_file(staging / "events.parquet")
             (staging / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
         return (Handle("MARKET_DATA", str(target), metadata=manifest).to_dict(),)
 
@@ -329,6 +344,7 @@ class TushareToQlib:
         root = Path(handle.path).resolve()
         if not str(output_dir or "").strip():
             raise ValueError("output_dir 不能为空")
+        output_dir = str(resolve_node_path(output_dir))
         raw_path = root / "raw.parquet"
         if not raw_path.exists():
             raise ValueError(f"MARKET_DATA 缺少 raw.parquet: {raw_path}")
@@ -416,11 +432,13 @@ class AdjustPrices:
     CATEGORY = "TY Quant/Data"
 
     def run(self, csv_path, adjustment, output_path=""):
+        csv_path = str(resolve_node_path(csv_path, must_exist=True))
         data = normalize_market_frame(pd.read_csv(csv_path))
         adjusted = apply_adjustment(data, adjustment)
-        target = Path(output_path or f"{Path(csv_path).with_suffix('')}_{adjustment}.parquet")
-        target.parent.mkdir(parents=True, exist_ok=True)
-        adjusted.to_parquet(target, index=False)
+        target = Path(output_path) if output_path else Path(csv_path).with_suffix("").with_name(f"{Path(csv_path).stem}_{adjustment}.parquet")
+        target = resolve_node_path(target)
+        with atomic_file(target) as staging:
+            adjusted.to_parquet(staging, index=False)
         return (str(target),)
 
 
@@ -446,6 +464,8 @@ class QlibExport:
         csv_path = _controlled(values, "csv_path", csv_path)
         adjustment = _controlled(values, "adjustment", adjustment)
         output_dir = _controlled(values, "output_root", output_dir)
+        csv_path = str(resolve_node_path(csv_path, must_exist=True))
+        output_dir = str(resolve_node_path(output_dir))
         frame = pd.read_csv(csv_path)
         run_key = _stable_json_hash({"input": _stable_frame_hash(normalize_market_frame(frame)), "adjustment": adjustment})
         output = _versioned_run_target(output_dir, run_key)
@@ -544,6 +564,7 @@ class QlibTrain:
     def run(self, dataset, model, artifact_dir, features=None, control=None):
         values = _control_values(control)
         artifact_dir = _controlled(values, "artifact_dir", artifact_dir)
+        artifact_dir = str(resolve_node_path(artifact_dir))
         dataset_handle, model_handle = _handle(dataset), _handle(model)
         feature_path = dataset_handle.metadata.get("feature_set_path")
         if features is not None:
@@ -667,8 +688,13 @@ class QlibBacktest:
             result.equity.to_csv(staging / "equity.csv", index=False)
             (staging / "metrics.json").write_text(json.dumps(result.metrics, ensure_ascii=False, indent=2), encoding="utf-8")
             result.signal.to_parquet(staging / "signal.parquet", index=False)
+            files = {
+                "equity": sha256_file(staging / "equity.csv"),
+                "metrics": sha256_file(staging / "metrics.json"),
+                "signal": sha256_file(staging / "signal.parquet"),
+            }
             (staging / "manifest.json").write_text(
-                json.dumps({"schema_version": "1", "run_key": run_key, "metrics": result.metrics}, ensure_ascii=False, indent=2),
+                json.dumps({"schema_version": "1", "run_key": run_key, "metrics": result.metrics, "files": files}, ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )
         return (
@@ -694,6 +720,7 @@ class QlibReport:
     def run(self, backtest_result, output_dir, control=None):
         values = _control_values(control)
         output_dir = _controlled(values, "report_dir", output_dir)
+        output_dir = str(resolve_node_path(output_dir))
         handle = _handle(backtest_result)
         metrics_path = Path(handle.path) / "metrics.json"
         metrics = json.loads(metrics_path.read_text(encoding="utf-8"))

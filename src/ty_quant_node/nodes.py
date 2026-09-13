@@ -492,7 +492,10 @@ class TushareDailyFetch:
             "events_hash": _stable_json_hash(events),
         }
         with artifact_transaction(target) as staging:
-            data.to_parquet(staging / "raw.parquet", index=False)
+            # DataFrame.attrs 只用于本次节点调用传递事件，不能进入 Parquet 元数据。
+            raw_data = data.copy()
+            raw_data.attrs = {}
+            raw_data.to_parquet(staging / "raw.parquet", index=False)
             if events:
                 pd.DataFrame(events).to_parquet(staging / "events.parquet", index=False)
             manifest["files"] = {"raw": sha256_file(staging / "raw.parquet")}

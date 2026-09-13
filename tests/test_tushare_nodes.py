@@ -64,6 +64,37 @@ def test_tushare_fetch_and_conversion_write_versioned_provider(monkeypatch, tmp_
     assert (tmp_path / "provider" / "features" / "000001.sz" / "ty_close.day.bin").exists()
 
 
+def test_tushare_fetch_strips_timestamp_dataframe_attrs_before_parquet(monkeypatch, tmp_path):
+    class _TimestampSource(_FakeSource):
+        def fetch(self, codes, start, end, *, include_events=False):
+            frame = super().fetch(codes, start, end, include_events=include_events)
+            frame.attrs["events"] = [
+                {
+                    "instrument": codes[0],
+                    "effective_date": pd.Timestamp("2024-01-02"),
+                    "price_multiplier": 2.0,
+                    "split_multiplier": 2.0,
+                    "knowledge_date": pd.Timestamp("2024-01-02"),
+                }
+            ]
+            return frame
+
+    monkeypatch.setattr("ty_quant_node.nodes.TushareDailySource", _TimestampSource)
+    config = TushareConfig().run("environment", 3)[0]
+
+    market = TushareDailyFetch().run(
+        config,
+        "000001.SZ",
+        "20240101",
+        "20240102",
+        str(tmp_path / "snapshot"),
+        True,
+    )[0]
+
+    assert market["metadata"]["files"]["raw"]
+    assert market["metadata"]["files"]["events"]
+
+
 def test_tushare_config_forwards_environment_name_and_fetch_keeps_old_snapshot(monkeypatch, tmp_path):
     calls = []
 

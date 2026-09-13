@@ -55,7 +55,7 @@
         },
         {
           "name": "query_start",
-          "type": "TY_DATE",
+          "type": "STRING",
           "link": null,
           "widget": {
             "name": "query_start"
@@ -63,7 +63,7 @@
         },
         {
           "name": "query_end",
-          "type": "TY_DATE",
+          "type": "STRING",
           "link": null,
           "widget": {
             "name": "query_end"

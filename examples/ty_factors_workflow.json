@@ -47,7 +47,7 @@
         },
         {
           "name": "query_start",
-          "type": "TY_DATE",
+          "type": "STRING",
           "link": null,
           "widget": {
             "name": "query_start"
@@ -55,7 +55,7 @@
         },
         {
           "name": "query_end",
-          "type": "TY_DATE",
+          "type": "STRING",
           "link": null,
           "widget": {
             "name": "query_end"
@@ -87,7 +87,7 @@
         },
         {
           "name": "train_start",
-          "type": "TY_DATE",
+          "type": "STRING",
           "link": null,
           "widget": {
             "name": "train_start"
@@ -95,7 +95,7 @@
         },
         {
           "name": "train_end",
-          "type": "TY_DATE",
+          "type": "STRING",
           "link": null,
           "widget": {
             "name": "train_end"
@@ -103,7 +103,7 @@
         },
         {
           "name": "test_start",
-          "type": "TY_DATE",
+          "type": "STRING",
           "link": null,
           "widget": {
             "name": "test_start"
@@ -111,7 +111,7 @@
         },
         {
           "name": "test_end",
-          "type": "TY_DATE",
+          "type": "STRING",
           "link": null,
           "widget": {
             "name": "test_end"
@@ -324,7 +324,7 @@
         },
         {
           "name": "query_start",
-          "type": "TY_DATE",
+          "type": "STRING",
           "link": null,
           "widget": {
             "name": "query_start"
@@ -332,7 +332,7 @@
         },
         {
           "name": "query_end",
-          "type": "TY_DATE",
+          "type": "STRING",
           "link": null,
           "widget": {
             "name": "query_end"

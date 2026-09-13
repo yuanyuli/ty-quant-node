@@ -19,7 +19,7 @@ from .core.report import create_report, image_to_tensor
 from .core.artifacts import artifact_transaction, atomic_file, sha256_file, verify_manifest_file
 from .core.security import resolve_node_path
 from .factors.compute import compute_ty_factors
-from .data_inspect import create_inspection
+from .data_inspect import create_inspection, inspect_frame
 
 
 def _handle(value) -> Handle:
@@ -661,8 +661,9 @@ class TYDataInspect:
             "optional": {"market_data": ("MARKET_DATA",), "qlib_export": ("QLIB_EXPORT",)},
         }
 
-    RETURN_TYPES = ("IMAGE", "STRING", "DATA_AUDIT")
-    RETURN_NAMES = ("K线图", "质量摘要", "数据审计")
+    RETURN_TYPES = ("IMAGE", "STRING", "STRING", "DATA_AUDIT")
+    RETURN_NAMES = ("K线图", "质量摘要", "raw_result", "数据审计")
+    OUTPUT_NODE = True
     FUNCTION = "run"
     CATEGORY = "TY Quant/Inspect"
 
@@ -677,8 +678,10 @@ class TYDataInspect:
         else:
             raise ValueError(f"TYDataInspect 不支持输入类型: {handle.kind}")
         output, audit = create_inspection(frame, output_dir, instrument=instrument, lookback=int(lookback), source_kind=handle.kind)
+        sample, _ = inspect_frame(frame, instrument=instrument, lookback=int(lookback))
+        raw_result = json.dumps({"audit": audit, "sample": json.loads(sample.to_json(orient="records", date_format="iso"))}, ensure_ascii=False)
         audit_handle = Handle("DATA_AUDIT", str(output), metadata=audit).to_dict()
-        return image_to_tensor(output / "preview.png"), json.dumps(audit, ensure_ascii=False), audit_handle
+        return image_to_tensor(output / "preview.png"), json.dumps(audit, ensure_ascii=False), raw_result, audit_handle
 
 
 class TYFactorCompute:

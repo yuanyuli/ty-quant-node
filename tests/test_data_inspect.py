@@ -12,7 +12,7 @@ def test_data_inspect_generates_kline_and_quality_report(tmp_path, market_frame,
     market_frame.to_csv(csv, index=False)
     export = export_qlib(market_frame, tmp_path / "provider", adjustment="qfq")
 
-    image, summary, audit = TYDataInspect().run(
+    image, summary, raw_result, audit = TYDataInspect().run(
         market_data=None,
         qlib_export=export,
         instrument="AAA",
@@ -25,5 +25,6 @@ def test_data_inspect_generates_kline_and_quality_report(tmp_path, market_frame,
     assert audit["metadata"]["rows"] == 5
     assert audit["metadata"]["duplicate_count"] == 0
     assert "AAA" in summary
+    assert '"instrument": "AAA"' in raw_result
     assert (tmp_path / "inspect" / "preview.png").exists()
     assert image.ndim == 4

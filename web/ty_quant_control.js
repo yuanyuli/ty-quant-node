@@ -53,23 +53,6 @@ function replaceDateWidget(node, inputName) {
   node.__tyDateWidgets.add(inputName);
 }
 
-function replaceDateWidget(node, name) {
-  const index = node.widgets?.findIndex((widget) => widget.name === name);
-  if (index == null || index < 0 || !node.addDOMWidget || node.widgets[index].type === "TY_DATE") return;
-  const old = node.widgets[index];
-  const input = document.createElement("input");
-  input.type = "date";
-  input.value = String(old.value || "").slice(0, 10);
-  input.title = old.options?.tooltip || "请选择日期";
-  const dom = node.addDOMWidget(name, "TY_DATE", input, {
-    getValue: () => input.value,
-    setValue: (value) => { input.value = String(value || "").slice(0, 10); },
-  });
-  dom.serialize = true;
-  node.widgets.splice(node.widgets.indexOf(dom), 1);
-  node.widgets.splice(index, 0, dom);
-}
-
 async function browsePath(current, chooseFile, onPick) {
   const rootsResponse = await api.fetchApi("/ty-quant-node/fs/roots");
   if (!rootsResponse.ok) throw new Error("无法读取允许的目录");
@@ -115,7 +98,7 @@ function addPicker(node, inputName, chooseFile = false) {
 }
 
 function applyControlVisibility(node) {
-  if (node.comfyClass === "QlibControl") return;
+  if ((node.comfyClass || node.type) === "QlibControl") return;
   const controlInput = (node.inputs || []).find((input) => input.name === "control");
   const controlled = Boolean(controlInput?.link);
   for (const widget of node.widgets || []) {
@@ -128,7 +111,7 @@ function applyControlVisibility(node) {
 }
 
 function applySourceVisibility(node) {
-  if (node.comfyClass !== "QlibControl") return;
+  if ((node.comfyClass || node.type) !== "QlibControl") return;
   const source = node.widgets?.find((widget) => widget.name === "data_source")?.value;
   const hidden = source === "local_csv" ? new Set(["ts_codes", "query_start", "query_end", "include_events"]) : new Set(["csv_path"]);
   for (const widget of node.widgets || []) {
@@ -145,8 +128,16 @@ app.registerExtension({
     if (node.__tyQuantEnhanced) return;
     node.__tyQuantEnhanced = true;
     setTimeout(() => {
+      const nodeClass = node.comfyClass || node.type;
       applyControlVisibility(node);
-      if (node.comfyClass !== "QlibControl") return;
+      if (nodeClass !== "QlibControl") {
+        if ((node.inputs || []).some((input) => input.name === "control" && input.link)) return;
+        for (const widget of node.widgets || []) {
+          if (["query_start", "query_end", "train_start", "train_end", "test_start", "test_end"].includes(widget.name)) replaceDateWidget(node, widget.name);
+          if (/(_path|_dir|_root|^output_dir$|^provider_uri$|^experiment_uri$)/.test(widget.name || "")) addPicker(node, widget.name, widget.name === "csv_path");
+        }
+        return;
+      }
       applySourceVisibility(node);
       const sourceWidget = node.widgets?.find((widget) => widget.name === "data_source");
       if (sourceWidget) {

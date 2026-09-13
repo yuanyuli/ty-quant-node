@@ -7,6 +7,7 @@ from ty_quant_node.core.artifacts import (
     atomic_file,
     artifact_transaction,
     atomic_write_text,
+    verify_manifest_file,
 )
 
 
@@ -62,3 +63,12 @@ def test_atomic_file_cleans_temp_when_writer_fails(tmp_path):
 
     assert not target.exists()
     assert not list(tmp_path.glob(".signal.parquet.*"))
+
+
+def test_verify_manifest_file_rejects_tampered_content(tmp_path):
+    target = tmp_path / "signal"
+    target.write_bytes(b"original")
+    manifest = {"files": {"signal": "0" * 64}}
+
+    with pytest.raises(ValueError, match="hash"):
+        verify_manifest_file(tmp_path, manifest, "signal")

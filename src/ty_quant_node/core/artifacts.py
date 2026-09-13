@@ -6,6 +6,7 @@ from contextlib import contextmanager
 import hashlib
 import os
 from pathlib import Path
+import re
 import shutil
 import tempfile
 from collections.abc import Iterator
@@ -13,6 +14,10 @@ from collections.abc import Iterator
 
 class ArtifactConflictError(RuntimeError):
     """目标产物已存在，避免覆盖已有版本。"""
+
+
+class ArtifactIntegrityError(ValueError):
+    """产物文件与 manifest 声明不一致。"""
 
 
 def sha256_file(path: str | os.PathLike[str]) -> str:
@@ -23,6 +28,39 @@ def sha256_file(path: str | os.PathLike[str]) -> str:
         for chunk in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def verify_manifest_file(
+    root: str | os.PathLike[str],
+    manifest: dict,
+    key: str,
+    *,
+    relative_path: str | os.PathLike[str] | None = None,
+) -> Path:
+    """只读校验 manifest 中声明的单个文件并返回其绝对路径。"""
+
+    if not isinstance(manifest, dict):
+        raise ArtifactIntegrityError("artifact manifest 必须是对象，无法校验 hash")
+    files = manifest.get("files")
+    expected = files.get(key) if isinstance(files, dict) else None
+    if not isinstance(expected, str) or not re.fullmatch(r"[0-9a-fA-F]{64}", expected):
+        raise ArtifactIntegrityError(f"artifact manifest 缺少有效的 {key} hash")
+    relative = Path(relative_path if relative_path is not None else key)
+    if relative.is_absolute() or ".." in relative.parts:
+        raise ArtifactIntegrityError(f"artifact manifest 文件路径非法，拒绝校验 hash: {relative}")
+    base = _resolved(root)
+    target = (base / relative).resolve()
+    try:
+        if os.path.commonpath([os.path.normcase(str(base)), os.path.normcase(str(target))]) != os.path.normcase(str(base)):
+            raise ArtifactIntegrityError(f"artifact manifest 文件路径越界，拒绝校验 hash: {relative}")
+    except ValueError as exc:
+        raise ArtifactIntegrityError(f"artifact manifest 文件路径越界，拒绝校验 hash: {relative}") from exc
+    if not target.is_file():
+        raise ArtifactIntegrityError(f"artifact 文件不存在，无法校验 hash: {target}")
+    actual = sha256_file(target)
+    if actual.lower() != expected.lower():
+        raise ArtifactIntegrityError(f"artifact 文件 hash 不匹配: {target}")
+    return target
 
 
 def _resolved(path: str | os.PathLike[str]) -> Path:

@@ -503,6 +503,78 @@ class TushareDailyFetch:
         return (Handle("MARKET_DATA", str(target), metadata=manifest).to_dict(),)
 
 
+class TushareProvider:
+    """一体化 Tushare 行情提供器：凭证、接口选择和日线快照一次完成。"""
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "token_source": (["environment"], {"default": "environment", "tooltip": "凭证来源；token 只从 ComfyUI 进程环境变量读取。"}),
+                "token_env_name": ("STRING", {"default": "TUSHARE_TOKEN", "tooltip": "Tushare token 所在的环境变量名。"}),
+                "api_profile": (["daily+adj_factor+dividend", "daily+adj_factor", "daily"], {"default": "daily+adj_factor+dividend", "tooltip": "选择同步接口组合；推荐包含复权因子和公司行动。"}),
+                "ts_codes": ("STRING", {"default": "000001.SZ", "multiline": True, "tooltip": "股票代码，可用逗号、分号或换行分隔。"}),
+                "query_start": ("TY_DATE", {"default": "2024-01-01", "tooltip": "日线查询开始日期。"}),
+                "query_end": ("TY_DATE", {"default": "2024-12-31", "tooltip": "日线查询结束日期。"}),
+                "snapshot_dir": ("STRING", {"default": "outputs/ty_quant/snapshots", "tooltip": "raw 快照保存目录。"}),
+            },
+            "optional": {
+                "incremental": ("BOOLEAN", {"default": True, "tooltip": "相同快照已存在时直接复用。"}),
+                "retries": ("INT", {"default": 3, "min": 1, "max": 5, "tooltip": "网络请求失败时的最大重试次数。"}),
+                "max_codes_per_request": ("INT", {"default": 50, "min": 1, "max": 500, "tooltip": "单次请求最多包含的股票数量。"}),
+                "max_days_per_request": ("INT", {"default": 200, "min": 1, "max": 365, "tooltip": "单次请求最多覆盖的自然日数量。"}),
+                "control": ("QLIB_CONTROL",),
+            },
+        }
+
+    RETURN_TYPES = ("MARKET_DATA",)
+    RETURN_NAMES = ("行情快照",)
+    FUNCTION = "run"
+    CATEGORY = "TY Quant/Data"
+
+    def run(
+        self,
+        token_source="environment",
+        token_env_name="TUSHARE_TOKEN",
+        api_profile="daily+adj_factor+dividend",
+        ts_codes="000001.SZ",
+        query_start="2024-01-01",
+        query_end="2024-12-31",
+        snapshot_dir="outputs/ty_quant/snapshots",
+        incremental=True,
+        retries=3,
+        max_codes_per_request=50,
+        max_days_per_request=200,
+        control=None,
+    ):
+        if token_source != "environment":
+            raise ValueError("Tushare 目前只支持从环境变量读取 token")
+        if api_profile not in {"daily", "daily+adj_factor", "daily+adj_factor+dividend"}:
+            raise ValueError("不支持的 Tushare api_profile")
+        values = _control_values(control)
+        ts_codes = _controlled(values, "ts_codes", ts_codes)
+        query_start = _controlled(values, "query_start", query_start)
+        query_end = _controlled(values, "query_end", query_end)
+        snapshot_dir = _controlled(values, "snapshot_dir", snapshot_dir)
+        include_events = api_profile.endswith("dividend")
+        if "include_events" in values:
+            include_events = bool(values["include_events"])
+        config = Handle(
+            "TUSHARE_CONFIG", "",
+            metadata={
+                "token_source": token_source,
+                "token_env_name": str(token_env_name or "TUSHARE_TOKEN").strip() or "TUSHARE_TOKEN",
+                "retries": int(retries),
+                "max_codes_per_request": int(max_codes_per_request),
+                "max_days_per_request": int(max_days_per_request),
+            },
+        ).to_dict()
+        result = TushareDailyFetch().run(config, ts_codes, query_start, query_end, snapshot_dir, include_events, control=None)[0]
+        result["metadata"]["api_profile"] = api_profile
+        result["metadata"]["incremental"] = bool(incremental)
+        return (result,)
+
+
 class TushareToQlib:
     @classmethod
     def INPUT_TYPES(cls):
@@ -1009,8 +1081,7 @@ TYQuantReport = QlibReport
 NODE_CLASS_MAPPINGS = {
     "QlibControl": QlibControl,
     "QlibRuntime": QlibRuntime,
-    "TushareConfig": TushareConfig,
-    "TushareDailyFetch": TushareDailyFetch,
+    "TushareProvider": TushareProvider,
     "TushareToQlib": TushareToQlib,
     "TYFactorCompute": TYFactorCompute,
     "AdjustPrices": AdjustPrices,
@@ -1025,8 +1096,7 @@ NODE_CLASS_MAPPINGS = {
 NODE_DISPLAY_NAME_MAPPINGS = {
     "QlibControl": "TY Quant 总控",
     "QlibRuntime": "Qlib 运行时",
-    "TushareConfig": "Tushare 凭证配置",
-    "TushareDailyFetch": "Tushare 日线同步",
+    "TushareProvider": "Tushare Provider（日线与复权）",
     "TushareToQlib": "Tushare 转 Qlib",
     "TYFactorCompute": "TY-Factors 计算",
     "AdjustPrices": "行情复权",

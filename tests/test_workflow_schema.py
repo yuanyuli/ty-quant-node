@@ -68,24 +68,17 @@ def test_ty_factors_workflow_has_valid_links_and_api_contract(tmp_path):
 
     assert validate_workflow(workflow) == []
     prompt = workflow_to_prompt(workflow)
-    assert len(prompt) == 11
+    assert len(prompt) == 10
     assert prompt["1"]["class_type"] == "QlibControl"
-    assert prompt["2"]["class_type"] == "TushareConfig"
-    assert prompt["3"]["inputs"]["control"] == ["1", 0]
-    assert prompt["4"]["inputs"]["control"] == ["1", 0]
-    assert prompt["5"]["inputs"]["control"] == ["1", 0]
-    assert prompt["6"]["inputs"]["control"] == ["1", 0]
-    assert prompt["7"]["inputs"]["control"] == ["1", 0]
-    assert prompt["8"]["inputs"]["control"] == ["1", 0]
-    assert prompt["9"]["inputs"]["control"] == ["1", 0]
-    assert prompt["10"]["inputs"]["control"] == ["1", 0]
-    assert prompt["11"]["inputs"]["control"] == ["1", 0]
-    assert prompt["8"]["inputs"]["model"] == ["7", 0]
-    assert prompt["9"]["inputs"]["dataset"] == ["6", 0]
-    assert prompt["10"]["inputs"]["signal"] == ["9", 0]
-    assert prompt["11"]["inputs"]["backtest_result"] == ["10", 0]
-    factor_dir = prompt["5"]["inputs"].get("factor_dir", prompt["5"]["inputs"].get("output_dir", ""))
-    report_dir = prompt["11"]["inputs"].get("report_dir", prompt["11"]["inputs"].get("output_dir", ""))
+    assert prompt["2"]["class_type"] == "TushareProvider"
+    for node_id in map(str, range(2, 11)):
+        assert prompt[node_id]["inputs"]["control"] == ["1", 0]
+    assert prompt["7"]["inputs"]["model"] == ["6", 0]
+    assert prompt["8"]["inputs"]["dataset"] == ["5", 0]
+    assert prompt["9"]["inputs"]["signal"] == ["8", 0]
+    assert prompt["10"]["inputs"]["backtest_result"] == ["9", 0]
+    factor_dir = prompt["4"]["inputs"].get("factor_dir", prompt["4"]["inputs"].get("output_dir", ""))
+    report_dir = prompt["10"]["inputs"].get("report_dir", prompt["10"]["inputs"].get("output_dir", ""))
     assert factor_dir.replace("/", "\\").endswith("artifacts\\factors")
     assert report_dir.replace("/", "\\").endswith("artifacts\\report")
     assert prompt["1"]["inputs"]["ts_codes"] == "000001.SZ"

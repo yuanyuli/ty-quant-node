@@ -10,10 +10,9 @@ from ty_quant_node.nodes import QlibControl, QlibRuntime, QlibReport
 def test_comfyui_root_registers_full_node_group():
     module = importlib.import_module("ty_quant_node")
     expected = {
-        "TushareConfig",
         "QlibControl",
         "QlibRuntime",
-        "TushareDailyFetch",
+        "TushareProvider",
         "TushareToQlib",
         "TYFactorCompute",
         "AdjustPrices",

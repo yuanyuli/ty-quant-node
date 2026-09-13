@@ -1,6 +1,6 @@
 import pytest
 
-from ty_quant_node.nodes import QlibExport, TushareConfig, TushareDailyFetch, TushareToQlib, TYFactorCompute
+from ty_quant_node.nodes import QlibExport, TushareConfig, TushareDailyFetch, TushareProvider, TushareToQlib, TYFactorCompute
 
 
 def test_tushare_fetch_outputs_market_data_and_conversion_outputs_qlib_export():
@@ -8,6 +8,8 @@ def test_tushare_fetch_outputs_market_data_and_conversion_outputs_qlib_export():
     assert TushareToQlib.RETURN_TYPES == ("QLIB_EXPORT",)
     assert TYFactorCompute.RETURN_TYPES == ("QLIB_FEATURE_SET", "STRING")
     assert TushareDailyFetch.INPUT_TYPES()["required"]["query_start"][0] == "STRING"
+    assert TushareProvider.RETURN_TYPES == ("MARKET_DATA",)
+    assert "api_profile" in TushareProvider.INPUT_TYPES()["required"]
     assert TushareToQlib.INPUT_TYPES()["required"]["market_data"][0] == "MARKET_DATA"
 
 

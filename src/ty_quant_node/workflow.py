@@ -261,168 +261,70 @@ def build_mvp_workflow(csv_path: str, artifact_root: str) -> dict[str, Any]:
     }
 
 
-def build_ty_factors_workflow(
-    ts_codes: str,
-    start_date: str,
-    end_date: str,
-    artifact_root: str,
-) -> dict[str, Any]:
-    """构造 Tushare -> PIT Qlib -> TY-Factors -> 回测工作流。"""
+def build_ty_factors_workflow(ts_codes: str, start_date: str, end_date: str, artifact_root: str) -> dict[str, Any]:
+    """构造 TushareProvider -> PIT Qlib -> TY-Factors -> 回测工作流。"""
     root = Path(artifact_root).resolve()
     values = {
-        "data_source": "tushare",
-        "csv_path": "",
-        "ts_codes": ts_codes,
-        "query_start": start_date,
-        "query_end": end_date,
-        "adjustment_mode": "pit",
-        "include_events": True,
-        "incremental": True,
-        "artifact_root": str(root),
-        "provider_dir": str(root / "provider"),
-        "snapshot_dir": str(root / "snapshots"),
-        "factor_dir": str(root / "factors"),
-        "train_start": "",
-        "train_end": "",
-        "test_start": "",
-        "test_end": "",
-        "factor_set": "ty_factors",
-        "selected_json": "[]",
-        "custom_json": "[]",
-        "model_type": "linear",
-        "params_json": "{}",
-        "model_dir": str(root / "model"),
-        "segment": "test",
-        "topk": 1,
-        "n_drop": 0,
-        "transaction_cost_bps": 5.0,
-        "report_dir": str(root / "report"),
-        "output_dir": str(root / "provider"),
-        "features": None,
-        "label_horizon": 0,
+        "data_source": "tushare", "csv_path": "", "ts_codes": ts_codes,
+        "query_start": start_date, "query_end": end_date, "adjustment_mode": "pit",
+        "include_events": True, "incremental": True, "artifact_root": str(root),
+        "provider_dir": str(root / "provider"), "snapshot_dir": str(root / "snapshots"),
+        "factor_dir": str(root / "factors"), "model_dir": str(root / "model"),
+        "train_start": "", "train_end": "", "test_start": "", "test_end": "",
+        "factor_set": "ty_factors", "selected_json": "[]", "custom_json": "[]",
+        "model_type": "linear", "params_json": "{}", "segment": "test", "topk": 1,
+        "n_drop": 0, "transaction_cost_bps": 5.0, "report_dir": str(root / "report"),
+        "output_dir": str(root / "provider"), "label_horizon": 0,
     }
     links = [
-        _link(1, (1, 0), (3, 6), "QLIB_CONTROL"),
-        _link(2, (1, 0), (4, 4), "QLIB_CONTROL"),
-        _link(3, (1, 0), (5, 5), "QLIB_CONTROL"),
-        _link(4, (1, 0), (6, 7), "QLIB_CONTROL"),
-        _link(5, (1, 0), (7, 2), "QLIB_CONTROL"),
-        _link(6, (1, 0), (8, 4), "QLIB_CONTROL"),
-        _link(7, (1, 0), (9, 4), "QLIB_CONTROL"),
-        _link(8, (1, 0), (10, 4), "QLIB_CONTROL"),
-        _link(9, (1, 0), (11, 2), "QLIB_CONTROL"),
-        _link(10, (2, 0), (3, 0), "TUSHARE_CONFIG"),
-        _link(11, (3, 0), (4, 0), "MARKET_DATA"),
-        _link(12, (4, 0), (5, 0), "QLIB_EXPORT"),
-        _link(13, (4, 0), (6, 0), "QLIB_EXPORT"),
-        _link(14, (5, 0), (6, 5), "QLIB_FEATURE_SET"),
-        _link(15, (6, 0), (8, 0), "QLIB_DATASET"),
-        _link(16, (5, 0), (8, 3), "QLIB_FEATURE_SET"),
-        _link(17, (6, 0), (9, 1), "QLIB_DATASET"),
-        _link(18, (5, 0), (9, 3), "QLIB_FEATURE_SET"),
-        _link(19, (7, 0), (8, 1), "QLIB_MODEL_SPEC"),
-        _link(20, (8, 0), (9, 0), "QLIB_TRAINED_MODEL"),
-        _link(21, (9, 0), (10, 0), "QLIB_SIGNAL_TABLE"),
-        _link(22, (10, 0), (11, 0), "QLIB_BACKTEST_RESULT"),
+        _link(1, (1, 0), (2, 11), "QLIB_CONTROL"), _link(2, (1, 0), (3, 4), "QLIB_CONTROL"),
+        _link(3, (1, 0), (4, 5), "QLIB_CONTROL"), _link(4, (1, 0), (5, 7), "QLIB_CONTROL"),
+        _link(5, (1, 0), (6, 2), "QLIB_CONTROL"), _link(6, (1, 0), (7, 4), "QLIB_CONTROL"),
+        _link(7, (1, 0), (8, 4), "QLIB_CONTROL"), _link(8, (1, 0), (9, 4), "QLIB_CONTROL"),
+        _link(9, (1, 0), (10, 2), "QLIB_CONTROL"), _link(10, (2, 0), (3, 0), "MARKET_DATA"),
+        _link(11, (3, 0), (4, 0), "QLIB_EXPORT"), _link(12, (3, 0), (5, 0), "QLIB_EXPORT"),
+        _link(13, (4, 0), (5, 5), "QLIB_FEATURE_SET"), _link(14, (4, 0), (7, 3), "QLIB_FEATURE_SET"),
+        _link(15, (4, 0), (8, 3), "QLIB_FEATURE_SET"), _link(16, (5, 0), (7, 0), "QLIB_DATASET"),
+        _link(17, (5, 0), (8, 1), "QLIB_DATASET"), _link(18, (6, 0), (7, 1), "QLIB_MODEL_SPEC"),
+        _link(19, (7, 0), (8, 0), "QLIB_TRAINED_MODEL"), _link(20, (8, 0), (9, 0), "QLIB_SIGNAL_TABLE"),
+        _link(21, (9, 0), (10, 0), "QLIB_BACKTEST_RESULT"),
     ]
-    links_by_input = {
-        (3, "config"): 10,
-        (3, "control"): 1,
-        (4, "market_data"): 11,
-        (4, "control"): 2,
-        (5, "export"): 12,
-        (5, "control"): 3,
-        (6, "export"): 13,
-        (6, "features"): 14,
-        (6, "control"): 4,
-        (7, "control"): 5,
-        (8, "dataset"): 15,
-        (8, "features"): 16,
-        (8, "model"): 19,
-        (8, "control"): 6,
-        (9, "trained_model"): 20,
-        (9, "dataset"): 17,
-        (9, "features"): 18,
-        (9, "control"): 7,
-        (10, "signal"): 21,
-        (10, "control"): 8,
-        (11, "backtest_result"): 22,
-        (11, "control"): 9,
-    }
-    links_by_output = {
-        1: {0: list(range(1, 10))},
-        2: {0: [10]},
-        3: {0: [11]},
-        4: {0: [12, 13]},
-        5: {0: [14, 16, 18]},
-        6: {0: [15, 17]},
-        7: {0: [19]},
-        8: {0: [20]},
-        9: {0: [21]},
-        10: {0: [22]},
-    }
+    links_by_input = {(2, "control"): 1, (3, "control"): 2, (4, "control"): 3, (5, "control"): 4,
+        (6, "control"): 5, (7, "control"): 6, (8, "control"): 7, (9, "control"): 8, (10, "control"): 9,
+        (2, "config"): None, (3, "market_data"): 10, (4, "export"): 11, (5, "export"): 12,
+        (5, "features"): 13, (7, "features"): 14, (8, "features"): 15, (7, "dataset"): 16,
+        (8, "dataset"): 17, (7, "model"): 18, (8, "trained_model"): 19, (9, "signal"): 20,
+        (10, "backtest_result"): 21}
+    links_by_input.pop((2, "config"))
+    links_by_output = {1: {0: list(range(1, 10))}, 2: {0: [10]}, 3: {0: [11, 12]},
+        4: {0: [13, 14, 15]}, 5: {0: [16, 17]}, 6: {0: [18]}, 7: {0: [19]}, 8: {0: [20]}, 9: {0: [21]}}
     specs = [
         (1, "QlibControl", (0, 0), (520, 1020), 0, "TY Quant 总控", "#16727c", "#4f0074"),
-        (2, "TushareConfig", (600, 0), (400, 180), 1, "Tushare 凭证配置", "#276b74", "#1d4d53"),
-        (3, "TushareDailyFetch", (1080, 0), (460, 300), 2, "Tushare 日线同步", "#276b74", "#1d4d53"),
-        (4, "TushareToQlib", (1620, 0), (460, 250), 3, "PIT 复权与 Qlib 转换", "#356b8c", "#254b63"),
-        (5, "TYFactorCompute", (2160, 0), (460, 320), 4, "TY-Factors 计算", "#6d5a35", "#4d3f26"),
-        (6, "QlibDataset", (2700, 0), (500, 360), 5, "Dataset 与标签", "#6d5a35", "#4d3f26"),
-        (7, "QlibModel", (2700, 430), (460, 210), 4, "模型配置", "#6d5a35", "#4d3f26"),
-        (8, "QlibTrain", (3280, 0), (460, 300), 6, "模型训练", "#6d5a35", "#4d3f26"),
-        (9, "QlibPredict", (3820, 0), (460, 260), 7, "信号预测", "#6d5a35", "#4d3f26"),
-        (10, "QlibBacktest", (4360, 0), (460, 280), 8, "TopK 回测", "#794c36", "#593827"),
-        (11, "QlibReport", (4900, 0), (460, 320), 9, "回测报告", "#794c36", "#593827"),
+        (2, "TushareProvider", (600, 0), (460, 360), 1, "Tushare Provider", "#276b74", "#1d4d53"),
+        (3, "TushareToQlib", (1120, 0), (460, 250), 2, "PIT 复权与 Qlib 转换", "#356b8c", "#254b63"),
+        (4, "TYFactorCompute", (1640, 0), (460, 320), 3, "TY-Factors 计算", "#6d5a35", "#4d3f26"),
+        (5, "QlibDataset", (2160, 0), (500, 360), 4, "Dataset 与标签", "#6d5a35", "#4d3f26"),
+        (6, "QlibModel", (2160, 430), (460, 210), 4, "模型配置", "#6d5a35", "#4d3f26"),
+        (7, "QlibTrain", (2720, 0), (460, 300), 5, "模型训练", "#6d5a35", "#4d3f26"),
+        (8, "QlibPredict", (3240, 0), (460, 260), 6, "信号预测", "#6d5a35", "#4d3f26"),
+        (9, "QlibBacktest", (3760, 0), (460, 280), 7, "TopK 回测", "#794c36", "#593827"),
+        (10, "QlibReport", (4280, 0), (460, 320), 8, "回测报告", "#794c36", "#593827"),
     ]
-    nodes = []
-    for node_id, node_type, position, size, order, title, color, bgcolor in specs:
-        node_input_links = {name: link_id for (target_id, name), link_id in links_by_input.items() if target_id == node_id}
-        node_values = dict(values)
-        if node_type == "TushareConfig":
-            node_values.update({"token_source": "environment", "token_env_name": "TUSHARE_TOKEN", "retries": 3})
-        elif node_type == "TushareDailyFetch":
-            node_values.update({"query_start": start_date, "query_end": end_date, "snapshot_dir": values["snapshot_dir"], "include_events": values["include_events"]})
-        elif node_type == "TushareToQlib":
-            node_values.update({"adjustment_mode": values["adjustment_mode"], "output_dir": values["provider_dir"], "incremental": values["incremental"]})
-        elif node_type == "TYFactorCompute":
-            node_values.update({"output_dir": values["factor_dir"]})
-        elif node_type == "QlibTrain":
-            node_values.update({"artifact_dir": values["model_dir"]})
-        elif node_type == "QlibReport":
-            node_values.update({"output_dir": values["report_dir"]})
-        nodes.append(
-            _make_node(
-                node_id,
-                node_type,
-                node_values,
-                node_input_links,
-                links_by_output.get(node_id, {}),
-                position=position,
-                size=size,
-                order=order,
-                title=title,
-                color=color,
-                bgcolor=bgcolor,
-            )
-        )
-    return {
-        "id": str(uuid.UUID("5d91bce2-2dd4-4b64-9d1c-25bda1d0c002")),
-        "revision": 0,
-        "last_node_id": 11,
-        "last_link_id": len(links),
-        "nodes": nodes,
-        "links": links,
-        "groups": [
-            {"title": "总控与凭证", "bounding": [-20, -20, 1040, 1100], "color": "#3f789e", "font_size": 24},
-            {"title": "数据同步与 PIT 复权", "bounding": [1060, -20, 1000, 700], "color": "#3f789e", "font_size": 24},
-            {"title": "TY-Factors、Dataset 与训练", "bounding": [2100, -20, 1600, 900], "color": "#7f704b", "font_size": 24},
-            {"title": "预测、回测与报告", "bounding": [3760, -20, 1700, 700], "color": "#8c573b", "font_size": 24},
-        ],
-        "config": {},
-        "extra": {"workflow_name": "TY Factors Tushare PIT Workflow", "description": "TY Quant 总控统一管理 Tushare 日线、point-in-time 复权、TY-Factors、训练、回测和报告。", "control_schema_version": "2"},
-        "version": 0.4,
-    }
-
+    nodes = [_make_node(node_id, node_type, dict(values), {name: link for (target, name), link in links_by_input.items() if target == node_id and link is not None}, links_by_output.get(node_id, {}), position=position, size=size, order=order, title=title, color=color, bgcolor=bgcolor) for node_id, node_type, position, size, order, title, color, bgcolor in specs]
+    overrides = {2: {"snapshot_dir": str(root / "snapshots")}, 3: {"output_dir": str(root / "provider")}, 4: {"output_dir": str(root / "factors")}, 7: {"artifact_dir": str(root / "model")}, 10: {"output_dir": str(root / "report")}}
+    for node in nodes:
+        for name, value in overrides.get(node["id"], {}).items():
+            node["widgets_values_named"][name] = value
+            for index, input_data in enumerate(node["inputs"]):
+                if input_data.get("widget", {}).get("name") == name and index < len(node["widgets_values"]):
+                    widget_index = sum(1 for item in node["inputs"][:index] if "widget" in item)
+                    node["widgets_values"][widget_index] = value
+    return {"id": str(uuid.UUID("5d91bce2-2dd4-4b64-9d1c-25bda1d0c003")), "revision": 0, "last_node_id": 10, "last_link_id": 21, "nodes": nodes, "links": links,
+        "groups": [{"title": "总控与 Tushare Provider", "bounding": [-20, -20, 1060, 1100], "color": "#3f789e", "font_size": 24},
+            {"title": "数据同步与 PIT 复权", "bounding": [1080, -20, 1040, 700], "color": "#3f789e", "font_size": 24},
+            {"title": "TY-Factors、Dataset 与训练", "bounding": [2140, -20, 1600, 900], "color": "#7f704b", "font_size": 24},
+            {"title": "预测、回测与报告", "bounding": [3760, -20, 1040, 700], "color": "#8c573b", "font_size": 24}],
+        "config": {}, "extra": {"workflow_name": "TY Factors Tushare PIT Workflow", "description": "Tushare Provider 统一管理凭证、接口、日线和复权数据。", "control_schema_version": "2"}, "version": 0.4}
 
 def validate_workflow(workflow: dict[str, Any]) -> list[str]:
     """检查工作流是否能被编辑器恢复为与节点定义一致的图。"""

@@ -2,7 +2,7 @@ import json
 
 import pandas as pd
 
-from ty_quant_node.nodes import QlibControl, TushareConfig, TushareDailyFetch, TushareToQlib
+from ty_quant_node.nodes import QlibControl, TushareConfig, TushareDailyFetch, TushareProvider, TushareToQlib
 
 
 def _control(tmp_path, **overrides):
@@ -69,6 +69,17 @@ def test_tushare_fetch_and_conversion_write_versioned_provider(monkeypatch, tmp_
     assert manifest["snapshot_id"] == "snapshot-test"
     assert manifest["files"]["dataset"]
     assert (tmp_path / "provider" / "features" / "000001.sz" / "ty_close.day.bin").exists()
+
+
+def test_tushare_provider_combines_credentials_and_fetch(monkeypatch, tmp_path):
+    monkeypatch.setattr("ty_quant_node.nodes.TushareDailySource", _FakeSource)
+    market = TushareProvider().run(
+        "environment", "TUSHARE_TOKEN", "daily+adj_factor+dividend", "000001.SZ", "2024-01-01", "2024-01-02",
+        str(tmp_path / "snapshot"), True, 3, 50, 200,
+    )[0]
+    assert market["kind"] == "MARKET_DATA"
+    assert market["metadata"]["source"] == "tushare"
+    assert market["metadata"]["include_events"] is True
 
 
 def test_tushare_fetch_strips_timestamp_dataframe_attrs_before_parquet(monkeypatch, tmp_path):

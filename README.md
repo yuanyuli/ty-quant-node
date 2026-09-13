@@ -18,7 +18,7 @@ python -m pip install -e ".[full]"
 ## MVP 流程
 
 ```text
-TushareConfig -> TushareDailyFetch -> TushareToQlib -> TYFactorCompute
+TushareProvider -> TushareToQlib -> TYFactorCompute
     -> QlibDataset (DatasetH)
     -> QlibModel -> QlibTrain -> QlibPredict
     -> QlibBacktest -> QlibReport
@@ -26,7 +26,7 @@ TushareConfig -> TushareDailyFetch -> TushareToQlib -> TYFactorCompute
 本地 CSV 可以从 `QlibExport` 直接进入 Dataset；Tushare 链路会先保留 raw 快照，再生成 Qlib provider。
 ```
 
-当前节点：`QlibControl`、`QlibRuntime`、`TushareConfig`、`TushareDailyFetch`、`TushareToQlib`、`TYFactorCompute`、`AdjustPrices`、`QlibExport`、`QlibDataset`、`QlibModel`、`QlibTrain`、`QlibPredict`、`QlibBacktest`、`QlibReport`。
+当前节点：`QlibControl`、`QlibRuntime`、`TushareProvider`、`TushareToQlib`、`TYFactorCompute`、`AdjustPrices`、`QlibExport`、`QlibDataset`、`QlibModel`、`QlibTrain`、`QlibPredict`、`QlibBacktest`、`QlibReport`。
 
 `QlibControl` 是 H3 导演工作台风格的总控节点。它集中保存本地 CSV 或 Tushare 查询、复权方式、训练/测试区间、TY-Factors 选择、模型参数、回测参数和报告目录，再通过 `QLIB_CONTROL` 句柄扇出到各阶段节点。数据、转换、因子、Dataset、模型、训练、预测、回测和报告节点连接总控后，以总控字段为准；未连接总控时仍使用自身 widgets，便于替换数据源或定位问题。
 
@@ -77,7 +77,7 @@ uv run pytest ty-quant-node/tests -q
 $env:TUSHARE_TOKEN = "你的 token"
 ```
 
-`TushareConfig` 只保存 `token_source=environment`、环境变量名（默认 `TUSHARE_TOKEN`）、重试次数和请求分块大小，不接受 token 文本。默认每次最多请求 50 个股票、200 个自然日；接口额度较低时可在节点中降低这两个值。`TushareDailyFetch` 按股票和日期窗口调用 `daily`、`adj_factor`，可选调用 `dividend`，再按 `ts_code + trade_date` 合并；空的或不完整的复权因子会直接报错。股票代码支持逗号、分号或换行分隔。每个 raw 快照写入 `manifest.json`、`raw.parquet`，有事件时另写 `events.parquet`；同一目录出现新 snapshot 会自动写入 `<snapshot_id>` 子目录，不覆盖历史版本。`TushareConfig` 只负责凭证和请求策略，查询参数由 `QlibControl` 管理，token 永远不会进入总控句柄或工作流。
+`TushareProvider` 将凭证、接口组合、股票代码、日期窗口、请求策略和快照写入合并为一个节点。`api_profile` 可选择 `daily`、`daily+adj_factor` 或 `daily+adj_factor+dividend`，推荐最后一种。默认每次最多请求 50 个股票、200 个自然日；接口额度较低时可在节点中降低这两个值。空的或不完整的复权因子会直接报错。股票代码支持逗号、分号或换行分隔。每个 raw 快照写入 `manifest.json`、`raw.parquet`，有事件时另写 `events.parquet`；同一目录出现新 snapshot 会自动写入 `<snapshot_id>` 子目录，不覆盖历史版本。token 永远不会进入总控句柄或工作流。
 
 `QlibRuntime` 无论使用真实 Qlib 还是兼容 Dataset 后端，都会先按 `seed` 初始化 Python `random` 和 NumPy 随机源，保证同一输入和参数下的运行顺序一致。
 

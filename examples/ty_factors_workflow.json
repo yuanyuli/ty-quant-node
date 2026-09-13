@@ -16,7 +16,7 @@
         1020
       ],
       "flags": {
-        "pinned": true
+        "pinned": false
       },
       "order": 0,
       "mode": 0,
@@ -285,7 +285,7 @@
         180
       ],
       "flags": {
-        "pinned": true
+        "pinned": false
       },
       "order": 1,
       "mode": 0,
@@ -376,7 +376,7 @@
         300
       ],
       "flags": {
-        "pinned": true
+        "pinned": false
       },
       "order": 2,
       "mode": 0,
@@ -479,7 +479,7 @@
         250
       ],
       "flags": {
-        "pinned": true
+        "pinned": false
       },
       "order": 3,
       "mode": 0,
@@ -563,7 +563,7 @@
         320
       ],
       "flags": {
-        "pinned": true
+        "pinned": false
       },
       "order": 4,
       "mode": 0,
@@ -664,7 +664,7 @@
         360
       ],
       "flags": {
-        "pinned": true
+        "pinned": false
       },
       "order": 5,
       "mode": 0,
@@ -774,7 +774,7 @@
         210
       ],
       "flags": {
-        "pinned": true
+        "pinned": false
       },
       "order": 4,
       "mode": 0,
@@ -841,7 +841,7 @@
         300
       ],
       "flags": {
-        "pinned": true
+        "pinned": false
       },
       "order": 6,
       "mode": 0,
@@ -922,7 +922,7 @@
         260
       ],
       "flags": {
-        "pinned": true
+        "pinned": false
       },
       "order": 7,
       "mode": 0,
@@ -997,7 +997,7 @@
         280
       ],
       "flags": {
-        "pinned": true
+        "pinned": false
       },
       "order": 8,
       "mode": 0,
@@ -1086,7 +1086,7 @@
         320
       ],
       "flags": {
-        "pinned": true
+        "pinned": false
       },
       "order": 9,
       "mode": 0,
@@ -1341,9 +1341,9 @@
     {
       "title": "数据同步与 PIT 复权",
       "bounding": [
-        1040,
+        1060,
         -20,
-        1560,
+        1000,
         700
       ],
       "color": "#3f789e",
@@ -1352,9 +1352,9 @@
     {
       "title": "TY-Factors、Dataset 与训练",
       "bounding": [
-        2120,
+        2100,
         -20,
-        2180,
+        1600,
         900
       ],
       "color": "#7f704b",
@@ -1363,7 +1363,7 @@
     {
       "title": "预测、回测与报告",
       "bounding": [
-        3740,
+        3760,
         -20,
         1700,
         700

@@ -16,7 +16,7 @@
         760
       ],
       "flags": {
-        "pinned": true
+        "pinned": false
       },
       "order": 0,
       "mode": 0,
@@ -283,7 +283,7 @@
         220
       ],
       "flags": {
-        "pinned": true
+        "pinned": false
       },
       "order": 1,
       "mode": 0,
@@ -360,7 +360,7 @@
         260
       ],
       "flags": {
-        "pinned": true
+        "pinned": false
       },
       "order": 2,
       "mode": 0,
@@ -469,7 +469,7 @@
         190
       ],
       "flags": {
-        "pinned": true
+        "pinned": false
       },
       "order": 1,
       "mode": 0,
@@ -536,7 +536,7 @@
         260
       ],
       "flags": {
-        "pinned": true
+        "pinned": false
       },
       "order": 3,
       "mode": 0,
@@ -616,7 +616,7 @@
         220
       ],
       "flags": {
-        "pinned": true
+        "pinned": false
       },
       "order": 4,
       "mode": 0,
@@ -690,7 +690,7 @@
         260
       ],
       "flags": {
-        "pinned": true
+        "pinned": false
       },
       "order": 5,
       "mode": 0,
@@ -779,7 +779,7 @@
         300
       ],
       "flags": {
-        "pinned": true
+        "pinned": false
       },
       "order": 6,
       "mode": 0,
@@ -970,9 +970,9 @@
     {
       "title": "数据准备与复权",
       "bounding": [
-        610,
-        20,
-        1000,
+        620,
+        -20,
+        980,
         640
       ],
       "color": "#3f789e",
@@ -981,9 +981,9 @@
     {
       "title": "模型训练与预测",
       "bounding": [
-        1610,
-        20,
-        1000,
+        1620,
+        -20,
+        760,
         640
       ],
       "color": "#7f704b",
@@ -992,9 +992,9 @@
     {
       "title": "回测与报告",
       "bounding": [
-        2610,
-        20,
-        1040,
+        2400,
+        -20,
+        1240,
         640
       ],
       "color": "#8c573b",

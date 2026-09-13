@@ -29,6 +29,7 @@ def test_generated_workflow_has_control_fanout_and_complete_ports(tmp_path):
     assert validate_workflow(workflow) == []
     assert workflow["version"] == 0.4
     assert len(workflow["groups"]) == 4
+    assert all(node["flags"].get("pinned") is False for node in workflow["nodes"])
     assert {node["type"] for node in workflow["nodes"]} == {
         "QlibControl",
         "QlibExport",
@@ -92,3 +93,13 @@ def test_ty_factors_workflow_has_valid_links_and_api_contract(tmp_path):
     assert prompt["1"]["inputs"]["query_end"] == "2024-12-31"
     assert prompt["1"]["inputs"]["adjustment_mode"] == "pit"
     assert "start_date" not in prompt["1"]["inputs"]
+
+
+def test_workflow_groups_do_not_overlap():
+    workflow = build_ty_factors_workflow("000001.SZ", "2024-01-01", "2024-12-31", "artifacts")
+    groups = workflow["groups"]
+    for index, left in enumerate(groups):
+        lx, ly, lw, lh = left["bounding"]
+        for right in groups[index + 1 :]:
+            rx, ry, rw, rh = right["bounding"]
+            assert lx + lw <= rx or rx + rw <= lx or ly + lh <= ry or ry + rh <= ly

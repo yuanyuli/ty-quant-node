@@ -10,30 +10,64 @@ const SECTIONS = [
   ["产物目录", ["artifact_root"]],
 ];
 
-function addSection(node, title, beforeName) {
-  if (!node.addCustomWidget || node.widgets?.some((w) => w.name === `__ty_section_${title}`)) return;
-  const widget = {
-    name: `__ty_section_${title}`,
-    type: "TY_SECTION",
-    serialize: false,
-    options: { serialize: false },
-    computeSize: () => [node.size?.[0] || 300, 24],
-    draw(ctx, _node, width, y, height) {
-      ctx.save();
-      ctx.fillStyle = "#3b82f6";
-      ctx.fillRect(8, y + 5, 3, height - 10);
-      ctx.fillStyle = "#dbeafe";
-      ctx.font = "bold 13px sans-serif";
-      ctx.fillText(title, 18, y + height - 8);
-      ctx.strokeStyle = "#475569";
-      ctx.beginPath(); ctx.moveTo(18, y + height - 3); ctx.lineTo(width - 8, y + height - 3); ctx.stroke();
-      ctx.restore();
-    },
-  };
-  node.addCustomWidget(widget);
+function addSection(node, title, fields, expanded = false, refresh = () => {}) {
+  if (!node.addWidget || node.widgets?.some((w) => w.name === `__ty_section_${title}`)) return;
+  const state = { expanded: Boolean(expanded) };
+  const button = node.addWidget("button", `__ty_section_${title}`, `${state.expanded ? "▾" : "▸"} ${title}`, () => {
+    state.expanded = !state.expanded;
+    button.label = `${state.expanded ? "▾" : "▸"} ${title}`;
+    refresh();
+  });
+  button.serialize = false;
+  button.options = { ...(button.options || {}), serialize: false, tooltip: `${title} 参数；点击标题展开或收起。` };
+  button.__tySection = { fields, state };
   const inserted = node.widgets.pop();
-  const index = node.widgets.findIndex((w) => w.name === beforeName);
+  const index = node.widgets.findIndex((w) => w.name === fields[0]);
   node.widgets.splice(index < 0 ? node.widgets.length : index, 0, inserted);
+}
+
+function replaceDateWidget(node, inputName) {
+  if (!node.addDOMWidget || node.__tyDateWidgets?.has(inputName)) return;
+  const index = node.widgets?.findIndex((w) => w.name === inputName);
+  if (index == null || index < 0) return;
+  const old = node.widgets[index];
+  const element = document.createElement("input");
+  element.type = "date";
+  element.value = String(old.value ?? "");
+  element.title = old.options?.tooltip || "日期";
+  Object.assign(element.style, { width: "100%", boxSizing: "border-box", colorScheme: "dark" });
+  node.widgets.splice(index, 1);
+  const widget = node.addDOMWidget(inputName, "TY_DATE", element, {
+    serialize: true,
+    getValue: () => element.value,
+    setValue: (value) => { element.value = String(value ?? ""); },
+  });
+  widget.options = { ...(widget.options || {}), tooltip: old.options?.tooltip || "日期" };
+  widget.value = element.value;
+  element.addEventListener("change", () => { widget.value = element.value; node.graph?.setDirtyCanvas(true, true); });
+  const current = node.widgets.indexOf(widget);
+  if (current >= 0) node.widgets.splice(current, 1);
+  node.widgets.splice(Math.min(index, node.widgets.length), 0, widget);
+  old.element && (old.element.style.display = "none");
+  node.__tyDateWidgets ??= new Set();
+  node.__tyDateWidgets.add(inputName);
+}
+
+function replaceDateWidget(node, name) {
+  const index = node.widgets?.findIndex((widget) => widget.name === name);
+  if (index == null || index < 0 || !node.addDOMWidget || node.widgets[index].type === "TY_DATE") return;
+  const old = node.widgets[index];
+  const input = document.createElement("input");
+  input.type = "date";
+  input.value = String(old.value || "").slice(0, 10);
+  input.title = old.options?.tooltip || "请选择日期";
+  const dom = node.addDOMWidget(name, "TY_DATE", input, {
+    getValue: () => input.value,
+    setValue: (value) => { input.value = String(value || "").slice(0, 10); },
+  });
+  dom.serialize = true;
+  node.widgets.splice(node.widgets.indexOf(dom), 1);
+  node.widgets.splice(index, 0, dom);
 }
 
 async function browsePath(current, chooseFile, onPick) {
@@ -80,15 +114,50 @@ function addPicker(node, inputName, chooseFile = false) {
   picker.options = { ...(picker.options || {}), serialize: false };
 }
 
+function applyControlVisibility(node) {
+  if (node.comfyClass === "QlibControl") return;
+  const controlInput = (node.inputs || []).find((input) => input.name === "control");
+  const controlled = Boolean(controlInput?.link);
+  for (const widget of node.widgets || []) {
+    if (widget.name === "control" || widget.name?.startsWith("__ty_")) continue;
+    widget.hidden = controlled;
+    if (controlled) widget.computeSize = () => [0, -4];
+  }
+  node.computeSize?.();
+  node.setDirtyCanvas?.(true, true);
+}
+
+function applySourceVisibility(node) {
+  if (node.comfyClass !== "QlibControl") return;
+  const source = node.widgets?.find((widget) => widget.name === "data_source")?.value;
+  const hidden = source === "local_csv" ? new Set(["ts_codes", "query_start", "query_end", "include_events"]) : new Set(["csv_path"]);
+  for (const widget of node.widgets || []) {
+    if (widget.name === "__ty_picker_csv_path") { widget.hidden = source === "local_csv"; widget.computeSize = () => [0, -4]; continue; }
+    if (widget.name?.startsWith("__ty_")) continue;
+    if (hidden.has(widget.name)) { widget.hidden = true; widget.computeSize = () => [0, -4]; }
+  }
+  node.computeSize?.();
+}
+
 app.registerExtension({
   name: "ty-quant-node.control-ux",
   nodeCreated(node) {
-    if (node.comfyClass !== "QlibControl" || node.__tyQuantEnhanced) return;
+    if (node.__tyQuantEnhanced) return;
     node.__tyQuantEnhanced = true;
     setTimeout(() => {
+      applyControlVisibility(node);
+      if (node.comfyClass !== "QlibControl") return;
+      applySourceVisibility(node);
+      const sourceWidget = node.widgets?.find((widget) => widget.name === "data_source");
+      if (sourceWidget) {
+        const previous = sourceWidget.callback;
+        sourceWidget.callback = (value) => { previous?.call(sourceWidget, value); applySourceVisibility(node); };
+      }
       for (const [title, fields] of SECTIONS) addSection(node, title, fields[0]);
+      for (const name of ["query_start", "query_end", "train_start", "train_end", "test_start", "test_end"]) replaceDateWidget(node, name);
       addPicker(node, "csv_path", true);
       addPicker(node, "artifact_root", false);
+      applySourceVisibility(node);
       for (const widget of node.widgets || []) {
         const tooltip = widget.options?.tooltip;
         if (tooltip) {

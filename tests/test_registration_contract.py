@@ -13,6 +13,7 @@ def test_comfyui_root_registers_full_node_group():
         "QlibControl",
         "QlibRuntime",
         "TushareProvider",
+        "TYDataInspect",
         "TushareToQlib",
         "TYFactorCompute",
         "AdjustPrices",

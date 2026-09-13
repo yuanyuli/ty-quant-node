@@ -18,7 +18,7 @@ python -m pip install -e ".[full]"
 ## MVP 流程
 
 ```text
-TushareProvider -> TushareToQlib -> TYFactorCompute
+TushareProvider -> [TYDataInspect] -> TushareToQlib -> TYFactorCompute
     -> QlibDataset (DatasetH)
     -> QlibModel -> QlibTrain -> QlibPredict
     -> QlibBacktest -> QlibReport
@@ -26,7 +26,9 @@ TushareProvider -> TushareToQlib -> TYFactorCompute
 本地 CSV 可以从 `QlibExport` 直接进入 Dataset；Tushare 链路会先保留 raw 快照，再生成 Qlib provider。
 ```
 
-当前节点：`QlibControl`、`QlibRuntime`、`TushareProvider`、`TushareToQlib`、`TYFactorCompute`、`AdjustPrices`、`QlibExport`、`QlibDataset`、`QlibModel`、`QlibTrain`、`QlibPredict`、`QlibBacktest`、`QlibReport`。
+当前节点：`QlibControl`、`QlibRuntime`、`TushareProvider`、`TYDataInspect`、`TushareToQlib`、`TYFactorCompute`、`AdjustPrices`、`QlibExport`、`QlibDataset`、`QlibModel`、`QlibTrain`、`QlibPredict`、`QlibBacktest`、`QlibReport`。
+
+`TYDataInspect` 用于在数据进入 Qlib 转换前后做抽样验证。它输出 K 线/成交量图片、中文质量摘要和 `DATA_AUDIT` 句柄，检查重复记录、OHLC 关系、复权因子缺失或为零等问题。可以把它连接到 `TushareProvider` 的 `MARKET_DATA`，也可以连接到 `TushareToQlib` 或 `QlibExport` 的 `QLIB_EXPORT`。
 
 `QlibControl` 是 H3 导演工作台风格的总控节点。它集中保存本地 CSV 或 Tushare 查询、复权方式、训练/测试区间、TY-Factors 选择、模型参数、回测参数和报告目录，再通过 `QLIB_CONTROL` 句柄扇出到各阶段节点。数据、转换、因子、Dataset、模型、训练、预测、回测和报告节点连接总控后，以总控字段为准；未连接总控时仍使用自身 widgets，便于替换数据源或定位问题。
 

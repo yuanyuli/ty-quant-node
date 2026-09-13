@@ -19,6 +19,7 @@ from .core.report import create_report, image_to_tensor
 from .core.artifacts import artifact_transaction, atomic_file, sha256_file, verify_manifest_file
 from .core.security import resolve_node_path
 from .factors.compute import compute_ty_factors
+from .data_inspect import create_inspection
 
 
 def _handle(value) -> Handle:
@@ -646,6 +647,40 @@ class TushareToQlib:
         return (export_qlib(raw, output, adjustment=adjustment, allow_unadjusted=adjustment == "none", run_key=run_key).to_dict(),)
 
 
+class TYDataInspect:
+    """对行情快照或 Qlib provider 做抽样 K 线和质量审计。"""
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "instrument": ("STRING", {"default": "", "tooltip": "股票代码；留空时使用数据中的第一只股票。"}),
+                "lookback": ("INT", {"default": 120, "min": 10, "max": 2000, "tooltip": "图表显示最近多少个交易日。"}),
+                "output_dir": ("STRING", {"default": "outputs/ty_quant/inspect", "tooltip": "审计报告和 K 线图片保存目录。"}),
+            },
+            "optional": {"market_data": ("MARKET_DATA",), "qlib_export": ("QLIB_EXPORT",)},
+        }
+
+    RETURN_TYPES = ("IMAGE", "STRING", "DATA_AUDIT")
+    RETURN_NAMES = ("K线图", "质量摘要", "数据审计")
+    FUNCTION = "run"
+    CATEGORY = "TY Quant/Inspect"
+
+    def run(self, instrument="", lookback=120, output_dir="outputs/ty_quant/inspect", market_data=None, qlib_export=None):
+        if market_data is None and qlib_export is None:
+            raise ValueError("TYDataInspect 至少需要连接 MARKET_DATA 或 QLIB_EXPORT")
+        handle = _handle(market_data if market_data is not None else qlib_export)
+        if handle.kind == "MARKET_DATA":
+            frame = pd.read_parquet(Path(handle.path) / "raw.parquet")
+        elif handle.kind == "QLIB_EXPORT":
+            frame = pd.read_parquet(Path(handle.path) / "dataset.parquet")
+        else:
+            raise ValueError(f"TYDataInspect 不支持输入类型: {handle.kind}")
+        output, audit = create_inspection(frame, output_dir, instrument=instrument, lookback=int(lookback), source_kind=handle.kind)
+        audit_handle = Handle("DATA_AUDIT", str(output), metadata=audit).to_dict()
+        return image_to_tensor(output / "preview.png"), json.dumps(audit, ensure_ascii=False), audit_handle
+
+
 class TYFactorCompute:
     @classmethod
     def INPUT_TYPES(cls):
@@ -1082,6 +1117,7 @@ NODE_CLASS_MAPPINGS = {
     "QlibControl": QlibControl,
     "QlibRuntime": QlibRuntime,
     "TushareProvider": TushareProvider,
+    "TYDataInspect": TYDataInspect,
     "TushareToQlib": TushareToQlib,
     "TYFactorCompute": TYFactorCompute,
     "AdjustPrices": AdjustPrices,
@@ -1097,6 +1133,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "QlibControl": "TY Quant 总控",
     "QlibRuntime": "Qlib 运行时",
     "TushareProvider": "Tushare Provider（日线与复权）",
+    "TYDataInspect": "TY Data Inspect（K线与审计）",
     "TushareToQlib": "Tushare 转 Qlib",
     "TYFactorCompute": "TY-Factors 计算",
     "AdjustPrices": "行情复权",

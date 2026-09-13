@@ -27,6 +27,7 @@ class Handle:
             "QLIB_BACKTEST_RESULT",
             "QLIB_REPORT",
             "QLIB_FEATURE_SET",
+            "DATA_AUDIT",
         }
     )
 

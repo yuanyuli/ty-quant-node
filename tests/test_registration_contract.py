@@ -73,3 +73,10 @@ def test_report_is_comfyui_output_node():
 def test_control_node_is_registered_with_optional_fanout_contract():
     assert "QLIB_CONTROL" in QlibControl.RETURN_TYPES
     assert QlibControl.INPUT_TYPES()["required"]["csv_path"][0] == "STRING"
+
+
+def test_registered_nodes_expose_chinese_display_names():
+    module = importlib.import_module("ty_quant_node")
+
+    assert module.NODE_DISPLAY_NAME_MAPPINGS["QlibControl"] == "TY Quant 总控"
+    assert module.NODE_DISPLAY_NAME_MAPPINGS["QlibPredict"] == "TY Quant 预测"

@@ -2,6 +2,8 @@
 
 ## 未发布
 
+- `QlibControl` 增加枚举、日期窗口、`n_drop/topk`、交易成本和 JSON 配置的入口校验，避免无效参数流入下游节点。
+- ComfyUI 注册增加 14 个稳定中文 display name，保留英文 node key 以兼容已有工作流。
 - 预测信号改为按运行键写入 `signals/<run_key>/signal.parquet`，新增输入引用、列契约和文件 SHA-256 manifest；相同运行键校验后复用，冲突产物拒绝覆盖。
 - `QlibRuntime` 在真实 Qlib 和兼容后端分支统一初始化 Python 与 NumPy 随机种子。
 - 增加通用 manifest 文件完整性校验；模型加载、回测和报告在消费前验证 SHA-256，拒绝被篡改的模型、信号、指标和净值曲线。

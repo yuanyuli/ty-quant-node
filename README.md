@@ -30,6 +30,8 @@ TushareConfig -> TushareDailyFetch -> TushareToQlib -> TYFactorCompute
 
 `QlibControl` 是 H3 导演工作台风格的总控节点。它集中保存本地 CSV 或 Tushare 查询、复权方式、训练/测试区间、TY-Factors 选择、模型参数、回测参数和报告目录，再通过 `QLIB_CONTROL` 句柄扇出到各阶段节点。数据、转换、因子、Dataset、模型、训练、预测、回测和报告节点连接总控后，以总控字段为准；未连接总控时仍使用自身 widgets，便于替换数据源或定位问题。
 
+总控节点会在工作流入口校验枚举和风险参数：`n_drop` 必须在 `0` 到 `topk` 之间，交易成本必须是非负有限数，训练/测试区间必须成对且不重叠，Tushare `start_date/end_date` 必须成对且顺序正确，模型和因子模式必须来自支持列表。输出目录只校验非空，实际本地路径白名单仍由执行节点检查。
+
 节点之间传递的是带 `kind/version/path/metadata` 的轻量句柄，行情表、模型文件和净值曲线写入本地 artifact 目录，不塞进 workflow JSON。
 
 所有可复用产物都遵循“运行键 + manifest + 原子发布”约定：相同输入快照、因子/模型参数和回测参数会命中同一个版本目录；参数或输入发生变化时写入新的短 hash 子目录，旧目录不覆盖。目录先在同级隐藏 staging 目录构建，只有 `raw.parquet`/`features.parquet`/模型文件/曲线和 manifest 全部成功后才提交；中途异常会自动清理 staging。训练、预测、回测和报告也各自保留 manifest，便于定位输入版本和重复复核。
@@ -102,6 +104,8 @@ $env:TY_QUANT_ALLOWED_ROOTS = "D:\\quant-data;D:\\quant-artifacts"
 ```
 
 路径中的 URL、设备路径和 `..` 穿越会在节点读取前直接拒绝。句柄携带的路径也会重新校验，不能通过手工修改 workflow 绕过白名单。
+
+ComfyUI 注册 key 仍使用 `QlibControl`、`QlibPredict` 等英文稳定标识，以兼容已有 workflow；界面搜索和节点标题显示为 `TY Quant 总控`、`TY Quant 预测` 等中文产品名称。
 
 工作流结构由 `src/ty_quant_node/workflow.py` 生成和校验。独立验证使用 `uv run pytest ty-quant-node/tests -q`；本地 CSV 联调将生成 `.artifacts/comfyui-mvp/provider`、`.artifacts/comfyui-mvp/model` 和 `.artifacts/comfyui-mvp/report/equity.png`，Tushare 工作流以 `QlibControl` 为总控并使用 `.artifacts/ty-factors-mvp/` 下的 snapshot、provider、factors、model 和 report 子目录。
 

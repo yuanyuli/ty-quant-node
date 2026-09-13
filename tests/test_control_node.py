@@ -1,4 +1,5 @@
 import json
+import pytest
 
 from ty_quant_node.core.handles import Handle
 from ty_quant_node.nodes import QlibControl, QlibExport, QlibModel
@@ -85,3 +86,21 @@ def test_control_carries_tushare_pit_and_factor_settings(tmp_path):
     assert metadata["factor_set"] == "selected"
     assert metadata["selected_json"] == '["TY_MOM_5"]'
     assert metadata["factor_output_dir"] == str(tmp_path / "factors")
+
+
+def test_control_rejects_invalid_strategy_parameters(tmp_path):
+    with pytest.raises(ValueError, match="n_drop"):
+        _control(tmp_path, topk=1, n_drop=2)
+    with pytest.raises(ValueError, match="交易成本"):
+        _control(tmp_path, transaction_cost_bps=float("nan"))
+
+
+def test_control_rejects_invalid_tushare_window(tmp_path):
+    with pytest.raises(ValueError, match="start_date"):
+        _control(
+            tmp_path,
+            csv_path="",
+            ts_codes="000001.SZ",
+            start_date="20240102",
+            end_date="20240101",
+        )

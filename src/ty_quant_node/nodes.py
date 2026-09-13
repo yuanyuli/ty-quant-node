@@ -2,6 +2,7 @@
 
 import json
 import hashlib
+import math
 from pathlib import Path
 import re
 import pandas as pd
@@ -110,6 +111,100 @@ def _validate_date_range_inputs(values: tuple[str, ...]) -> None:
         raise ValueError("训练或测试区间的开始日期不能晚于结束日期")
     if starts_ends[1] >= starts_ends[2]:
         raise ValueError("训练结束日期必须早于测试开始日期")
+
+
+def _validate_control_inputs(
+    *,
+    csv_path,
+    adjustment,
+    output_root,
+    train_start,
+    train_end,
+    test_start,
+    test_end,
+    model_type,
+    params_json,
+    artifact_dir,
+    segment,
+    topk,
+    n_drop,
+    transaction_cost_bps,
+    report_dir,
+    ts_codes,
+    start_date,
+    end_date,
+    adjustment_policy,
+    factor_set,
+    selected_json,
+    custom_json,
+):
+    """在总控节点边界校验所有会影响运行键的配置。"""
+
+    if str(adjustment) not in {"qfq", "hfq", "none"}:
+        raise ValueError("adjustment 必须是 qfq、hfq 或 none")
+    if str(model_type) not in {"linear", "lightgbm"}:
+        raise ValueError("model_type 必须是 linear 或 lightgbm")
+    if str(segment) not in {"train", "valid", "test"}:
+        raise ValueError("segment 必须是 train、valid 或 test")
+    if str(adjustment_policy) not in {"pit", "vendor_qfq", "vendor_hfq", "none"}:
+        raise ValueError("adjustment_policy 不受支持")
+    if str(factor_set) not in {"ty_factors", "alpha158", "selected", "custom"}:
+        raise ValueError("factor_set 不受支持")
+    for field, value in (("output_root", output_root), ("artifact_dir", artifact_dir), ("report_dir", report_dir)):
+        if not str(value or "").strip():
+            raise ValueError(f"{field} 不能为空")
+
+    try:
+        topk_value = int(topk)
+        n_drop_value = int(n_drop)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("topk 和 n_drop 必须是整数") from exc
+    if topk_value < 1:
+        raise ValueError("topk 必须大于等于 1")
+    if n_drop_value < 0 or n_drop_value > topk_value:
+        raise ValueError("n_drop 必须在 0 到 topk 之间")
+    try:
+        transaction_cost_value = float(transaction_cost_bps)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("交易成本必须是非负有限数") from exc
+    if not math.isfinite(transaction_cost_value) or transaction_cost_value < 0:
+        raise ValueError("交易成本必须是非负有限数")
+
+    _validate_date_range_inputs((train_start, train_end, test_start, test_end))
+    tushare_dates = [bool(str(value or "").strip()) for value in (start_date, end_date)]
+    if any(tushare_dates) and not all(tushare_dates):
+        raise ValueError("start_date 和 end_date 必须同时填写")
+    if all(tushare_dates):
+        try:
+            start_value = pd.Timestamp(str(start_date))
+            end_value = pd.Timestamp(str(end_date))
+        except (TypeError, ValueError) as exc:
+            raise ValueError("start_date 或 end_date 日期无效") from exc
+        if pd.isna(start_value) or pd.isna(end_value):
+            raise ValueError("start_date 或 end_date 日期无效")
+        if start_value > end_value:
+            raise ValueError("start_date 不能晚于 end_date")
+
+    try:
+        params = json.loads(params_json or "{}")
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("QlibControl 参数 JSON 无效") from exc
+    if not isinstance(params, dict):
+        raise RuntimeError("QlibControl 参数 JSON 必须是对象")
+
+    try:
+        selected = json.loads(selected_json or "[]")
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("selected_json JSON 无效") from exc
+    if not isinstance(selected, list) or not all(isinstance(name, str) and name.strip() for name in selected):
+        raise RuntimeError("selected_json 必须是字符串数组")
+    try:
+        custom = json.loads(custom_json or "[]")
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("custom_json JSON 无效") from exc
+    if not isinstance(custom, (dict, list)):
+        raise RuntimeError("custom_json 必须是对象或数组")
+    return params, topk_value, n_drop_value, transaction_cost_value
 
 
 class TushareConfig:
@@ -237,12 +332,30 @@ class QlibControl:
         custom_json="[]",
         factor_output_dir="",
     ):
-        try:
-            params = json.loads(params_json or "{}")
-        except json.JSONDecodeError as exc:
-            raise RuntimeError("QlibControl 参数 JSON 无效") from exc
-        if not isinstance(params, dict):
-            raise RuntimeError("QlibControl 参数 JSON 必须是对象")
+        params, topk_value, n_drop_value, transaction_cost_value = _validate_control_inputs(
+            csv_path=csv_path,
+            adjustment=adjustment,
+            output_root=output_root,
+            train_start=train_start,
+            train_end=train_end,
+            test_start=test_start,
+            test_end=test_end,
+            model_type=model_type,
+            params_json=params_json,
+            artifact_dir=artifact_dir,
+            segment=segment,
+            topk=topk,
+            n_drop=n_drop,
+            transaction_cost_bps=transaction_cost_bps,
+            report_dir=report_dir,
+            ts_codes=ts_codes,
+            start_date=start_date,
+            end_date=end_date,
+            adjustment_policy=adjustment_policy,
+            factor_set=factor_set,
+            selected_json=selected_json,
+            custom_json=custom_json,
+        )
         metadata = {
             "csv_path": str(csv_path),
             "adjustment": str(adjustment),
@@ -256,9 +369,9 @@ class QlibControl:
             "params": params,
             "artifact_dir": str(artifact_dir),
             "segment": str(segment),
-            "topk": int(topk),
-            "n_drop": int(n_drop),
-            "transaction_cost_bps": float(transaction_cost_bps),
+            "topk": topk_value,
+            "n_drop": n_drop_value,
+            "transaction_cost_bps": transaction_cost_value,
             "report_dir": str(report_dir),
             "ts_codes": str(ts_codes),
             "start_date": str(start_date),
@@ -907,4 +1020,19 @@ NODE_CLASS_MAPPINGS = {
     "QlibBacktest": QlibBacktest,
     "QlibReport": QlibReport,
 }
-NODE_DISPLAY_NAME_MAPPINGS = {key: key for key in NODE_CLASS_MAPPINGS}
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "QlibControl": "TY Quant 总控",
+    "QlibRuntime": "Qlib 运行时",
+    "TushareConfig": "Tushare 凭证配置",
+    "TushareDailyFetch": "Tushare 日线同步",
+    "TushareToQlib": "Tushare 转 Qlib",
+    "TYFactorCompute": "TY-Factors 计算",
+    "AdjustPrices": "行情复权",
+    "QlibExport": "Qlib 数据导出",
+    "QlibDataset": "Qlib Dataset",
+    "QlibModel": "Qlib 模型配置",
+    "QlibTrain": "Qlib 模型训练",
+    "QlibPredict": "TY Quant 预测",
+    "QlibBacktest": "Qlib 回测",
+    "QlibReport": "Qlib 回测报告",
+}

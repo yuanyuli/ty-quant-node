@@ -1,0 +1,8 @@
+name: TY_VOL_20
+version: "1.0"
+category: volatility
+expression: "Std($ty_close / Ref($ty_close, 1) - 1, 20)"
+inputs: [ty_close]
+lookback: 20
+adjustment_policy: point_in_time
+null_policy: drop

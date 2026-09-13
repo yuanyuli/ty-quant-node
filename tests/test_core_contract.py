@@ -34,6 +34,7 @@ def test_qlib_export_writes_consistent_provider(tmp_path, market_frame):
     manifest = json.loads((provider / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["adjustment"] == "qfq"
     assert manifest["anchor_factor"] == 2.0
+    assert manifest["factor_definition"] == "adjusted/original"
     assert manifest["calendar_count"] == 6
     assert check_provider_consistency(provider)["consistent"] is True
 

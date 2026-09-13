@@ -1,4 +1,4 @@
-from ty_quant_node.workflow import build_mvp_workflow, validate_workflow, workflow_to_prompt
+from ty_quant_node.workflow import build_mvp_workflow, build_ty_factors_workflow, validate_workflow, workflow_to_prompt
 
 
 def test_legacy_workflow_is_rejected_for_editor_metadata():
@@ -54,3 +54,18 @@ def test_workflow_to_prompt_preserves_widget_and_link_values(tmp_path):
     assert prompt["1"]["inputs"]["csv_path"].endswith("market.csv")
     assert prompt["2"]["inputs"]["control"] == ["1", 0]
     assert prompt["5"]["inputs"]["model"] == ["4", 0]
+
+
+def test_ty_factors_workflow_has_valid_links_and_api_contract(tmp_path):
+    workflow = build_ty_factors_workflow("000001.SZ", "2024-01-01", "2024-12-31", str(tmp_path / "artifacts"))
+
+    assert validate_workflow(workflow) == []
+    prompt = workflow_to_prompt(workflow)
+    assert len(prompt) == 10
+    assert prompt["1"]["class_type"] == "TushareConfig"
+    assert prompt["7"]["inputs"]["model"] == ["6", 0]
+    assert prompt["8"]["inputs"]["dataset"] == ["5", 0]
+    assert prompt["9"]["inputs"]["signal"] == ["8", 0]
+    assert prompt["10"]["inputs"]["backtest_result"] == ["9", 0]
+    assert prompt["4"]["inputs"]["output_dir"].endswith("artifacts\\factors") or prompt["4"]["inputs"]["output_dir"].endswith("artifacts/factors")
+    assert prompt["10"]["inputs"]["output_dir"].endswith("artifacts\\report") or prompt["10"]["inputs"]["output_dir"].endswith("artifacts/report")

@@ -3,14 +3,20 @@
 import json
 from pathlib import Path
 import numpy as np
+import pandas as pd
 
 
 def create_report(result, output_dir: str | Path):
+    import matplotlib
+
+    matplotlib.use("Agg", force=True)
     import matplotlib.pyplot as plt
 
     out = Path(output_dir).resolve()
     out.mkdir(parents=True, exist_ok=True)
-    curve = result.equity
+    curve = result.equity.copy()
+    if "datetime" in curve:
+        curve["datetime"] = pd.to_datetime(curve["datetime"], errors="coerce")
     fig, ax = plt.subplots(figsize=(8, 4), dpi=120)
     if not curve.empty:
         ax.plot(curve["datetime"], curve["equity"], color="#1f6feb", linewidth=2)

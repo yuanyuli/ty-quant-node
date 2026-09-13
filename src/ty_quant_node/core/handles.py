@@ -26,6 +26,7 @@ class Handle:
             "QLIB_SIGNAL_TABLE",
             "QLIB_BACKTEST_RESULT",
             "QLIB_REPORT",
+            "QLIB_FEATURE_SET",
         }
     )
 

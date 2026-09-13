@@ -31,7 +31,19 @@ def apply_adjustment(
             out[field] = out[f"{field}_raw"]
         if "amount_raw" in out:
             out["amount"] = out["amount_raw"]
-        out.attrs["adjustment"] = "none"
+            volume = pd.to_numeric(out["volume_raw"], errors="coerce")
+            out["vwap"] = out["amount_raw"] / volume.where(volume != 0)
+        out["factor"] = 1.0
+        out["ty_price_factor"] = 1.0
+        out["ty_split_factor"] = 1.0
+        out["ty_open"] = out["open"]
+        out["ty_high"] = out["high"]
+        out["ty_low"] = out["low"]
+        out["ty_close"] = out["close"]
+        out["ty_volume"] = out["volume"]
+        if "vwap" in out:
+            out["ty_vwap"] = out["vwap"]
+        out.attrs.update({"adjustment": "none", "factor_definition": "adjusted/original"})
         return out
     if "adj_factor" not in out:
         out["adj_factor"] = 1.0
@@ -51,9 +63,23 @@ def apply_adjustment(
     out["volume"] = out["volume_raw"] / ratio
     if "amount_raw" in out:
         out["amount"] = out["amount_raw"]
+        volume = pd.to_numeric(out["volume_raw"], errors="coerce")
+        raw_vwap = out["amount_raw"] / volume.where(volume != 0)
+        out["vwap"] = raw_vwap * ratio
+    out["factor"] = ratio
+    out["ty_price_factor"] = ratio
+    out["ty_split_factor"] = ratio
+    out["ty_open"] = out["open"]
+    out["ty_high"] = out["high"]
+    out["ty_low"] = out["low"]
+    out["ty_close"] = out["close"]
+    out["ty_volume"] = out["volume"]
+    if "vwap" in out:
+        out["ty_vwap"] = out["vwap"]
     out.attrs.update(
         {
             "adjustment": adjustment,
+            "factor_definition": "adjusted/original",
             "adjustment_anchor_factor": anchor,
             "adjustment_anchor_date": pd.Timestamp(anchor_row["datetime"]).isoformat(),
             "quality_errors": int(invalid.sum()),

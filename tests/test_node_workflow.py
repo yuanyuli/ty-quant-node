@@ -1,6 +1,10 @@
 import json
+import pytest
+import pandas as pd
 
 from ty_quant_node.nodes import QlibExport, QlibDataset, QlibModel, QlibTrain, QlibPredict, QlibBacktest, QlibReport
+from ty_quant_node.core.report import create_report
+from ty_quant_node.backend.backtest_backend import BacktestResult
 
 
 def test_nodes_execute_complete_fixture_workflow(tmp_path, market_frame):
@@ -18,3 +22,32 @@ def test_nodes_execute_complete_fixture_workflow(tmp_path, market_frame):
     assert json.loads(summary_json)["days"] >= 1
     assert image.shape[-1] == 3
     assert text
+
+
+def test_dataset_rejects_partial_date_configuration(tmp_path, market_frame):
+    csv_path = tmp_path / "market.csv"
+    market_frame.to_csv(csv_path, index=False)
+    export = QlibExport().run(str(csv_path), "qfq", str(tmp_path / "provider"))[0]
+    with pytest.raises(ValueError, match="训练和测试区间必须同时填写"):
+        QlibDataset().run(export, "2024-01-01", "", "", "")
+
+
+def test_report_coerces_string_dates_to_datetime_before_plotting(tmp_path, monkeypatch):
+    import matplotlib.axes
+
+    plotted = []
+    original_plot = matplotlib.axes.Axes.plot
+
+    def spy_plot(self, *args, **kwargs):
+        plotted.append(args[0])
+        return original_plot(self, *args, **kwargs)
+
+    monkeypatch.setattr(matplotlib.axes.Axes, "plot", spy_plot)
+    result = BacktestResult(
+        {"total_return": 0.0},
+        pd.DataFrame({"datetime": ["2024-01-01", "2024-01-02"], "equity": [1.0, 1.01]}),
+        pd.DataFrame(),
+    )
+    create_report(result, tmp_path / "report")
+    assert plotted
+    assert pd.api.types.is_datetime64_any_dtype(pd.Series(plotted[0]))

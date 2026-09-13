@@ -1,4 +1,5 @@
 import importlib
+import sys
 from ty_quant_node.nodes import QlibControl, QlibRuntime, QlibReport
 
 
@@ -9,6 +10,8 @@ def test_comfyui_root_registers_full_node_group():
         "QlibControl",
         "QlibRuntime",
         "TushareDailyFetch",
+        "TushareToQlib",
+        "TYFactorCompute",
         "AdjustPrices",
         "QlibExport",
         "QlibDataset",
@@ -28,6 +31,14 @@ def test_runtime_node_initializes_qlib(tmp_path):
     assert handle["kind"] == "QLIB_RUNTIME"
     assert handle["metadata"]["seed"] == 42
     assert handle["metadata"]["experiment_uri"].endswith("experiments")
+
+
+def test_runtime_returns_compat_handle_without_qlib(monkeypatch, tmp_path):
+    monkeypatch.setitem(sys.modules, "qlib", None)
+    handle = QlibRuntime().run(str(tmp_path), "cn", 7, "")[0]
+    assert handle["metadata"]["qlib_version"] == "unavailable"
+    assert handle["metadata"]["dataset_backend"] == "compat"
+    assert handle["path"] == str(tmp_path.resolve())
 
 
 def test_report_is_comfyui_output_node():

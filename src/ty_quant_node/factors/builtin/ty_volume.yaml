@@ -1,0 +1,8 @@
+name: TY_VOLUME_RATIO_20
+version: "1.0"
+category: volume
+expression: "$ty_volume / Mean($ty_volume, 20)"
+inputs: [ty_volume]
+lookback: 20
+adjustment_policy: point_in_time
+null_policy: drop

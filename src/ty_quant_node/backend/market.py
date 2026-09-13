@@ -61,7 +61,35 @@ def _write_bin(path: Path, values: np.ndarray, start_index: int = 0) -> None:
 
 def export_qlib(frame: pd.DataFrame, output_dir: str | Path, *, adjustment="qfq", allow_unadjusted=False) -> Handle:
     raw = normalize_market_frame(frame)
-    adjusted = apply_adjustment(raw, adjustment, allow_unadjusted=allow_unadjusted)
+    if adjustment == "pit":
+        required = {"ty_open", "ty_high", "ty_low", "ty_close", "ty_volume", "ty_price_factor"}
+        missing = required - set(raw.columns)
+        if missing:
+            raise ValueError(f"PIT 行情缺少字段: {', '.join(sorted(missing))}")
+        adjusted = raw.copy()
+        for standard, pit_name in {
+            "open": "ty_open",
+            "high": "ty_high",
+            "low": "ty_low",
+            "close": "ty_close",
+            "volume": "ty_volume",
+        }.items():
+            adjusted[standard] = pd.to_numeric(adjusted[pit_name], errors="coerce")
+        adjusted["factor"] = pd.to_numeric(adjusted["ty_price_factor"], errors="coerce")
+        if "ty_vwap" in adjusted:
+            adjusted["vwap"] = pd.to_numeric(adjusted["ty_vwap"], errors="coerce")
+        adjusted.attrs.update(raw.attrs)
+        adjusted.attrs.update(
+            {
+                "adjustment": "pit",
+                "point_in_time": bool(raw.attrs.get("point_in_time", False)),
+                "adjustment_source": raw.attrs.get("adjustment_source"),
+                "event_count": int(raw.attrs.get("event_count", 0)),
+                "factor_definition": "ty_price_adjusted/original",
+            }
+        )
+    else:
+        adjusted = apply_adjustment(raw, adjustment, allow_unadjusted=allow_unadjusted)
     adjusted["datetime"] = adjusted["datetime"].dt.normalize()
     output = Path(output_dir).resolve()
     output.mkdir(parents=True, exist_ok=True)
@@ -78,8 +106,9 @@ def export_qlib(frame: pd.DataFrame, output_dir: str | Path, *, adjustment="qfq"
         last = pd.Timestamp(group["datetime"].max()).strftime("%Y-%m-%d")
         instruments.append(f"{instrument}\t{first}\t{last}")
     (output / "instruments" / "all.txt").write_text("\n".join(instruments) + "\n", encoding="utf-8")
-    field_map = {"open": "open", "high": "high", "low": "low", "close": "close", "volume": "volume", "factor": "adj_factor"}
-    calendar_index = {pd.Timestamp(value): index for index, value in enumerate(calendar)}
+    field_map = {"open": "open", "high": "high", "low": "low", "close": "close", "volume": "volume", "factor": "factor", "vwap": "vwap"}
+    extra_fields = {column: column for column in adjusted.columns if column.startswith("ty_")}
+    field_map.update(extra_fields)
     for instrument, group in adjusted.groupby("instrument", sort=True):
         group = group.set_index("datetime").sort_index()
         instrument_dir = output / "features" / instrument.lower()
@@ -99,6 +128,11 @@ def export_qlib(frame: pd.DataFrame, output_dir: str | Path, *, adjustment="qfq"
         "row_count": len(adjusted),
         "date_range": [calendar_strings[0], calendar_strings[-1]],
         "adjustment": adjustment,
+        "point_in_time": bool(adjusted.attrs.get("point_in_time", False)),
+        "adjustment_source": adjusted.attrs.get("adjustment_source"),
+        "event_count": int(adjusted.attrs.get("event_count", 0)),
+        "factor_definition": adjusted.attrs.get("factor_definition", "adjusted/original"),
+        "snapshot_id": adjusted.attrs.get("snapshot_id"),
         "anchor_factor": adjusted.attrs.get("adjustment_anchor_factor"),
         "anchor_date": adjusted.attrs.get("adjustment_anchor_date"),
         "quality_errors": adjusted.attrs.get("quality_errors", 0),

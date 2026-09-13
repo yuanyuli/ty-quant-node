@@ -152,10 +152,10 @@ def build_mvp_workflow(csv_path: str, artifact_root: str) -> dict[str, Any]:
     # Link 1-7 are the H3-style control fan-out; link 8-14 are the data path.
     links = [
         _link(1, (1, 0), (2, 3), "QLIB_CONTROL"),
-        _link(2, (1, 0), (3, 5), "QLIB_CONTROL"),
+        _link(2, (1, 0), (3, 7), "QLIB_CONTROL"),
         _link(3, (1, 0), (4, 2), "QLIB_CONTROL"),
-        _link(4, (1, 0), (5, 3), "QLIB_CONTROL"),
-        _link(5, (1, 0), (6, 3), "QLIB_CONTROL"),
+        _link(4, (1, 0), (5, 4), "QLIB_CONTROL"),
+        _link(5, (1, 0), (6, 4), "QLIB_CONTROL"),
         _link(6, (1, 0), (7, 4), "QLIB_CONTROL"),
         _link(7, (1, 0), (8, 2), "QLIB_CONTROL"),
         _link(8, (2, 0), (3, 0), "QLIB_EXPORT"),
@@ -247,6 +247,138 @@ def build_mvp_workflow(csv_path: str, artifact_root: str) -> dict[str, Any]:
     }
 
 
+def build_ty_factors_workflow(
+    ts_codes: str,
+    start_date: str,
+    end_date: str,
+    artifact_root: str,
+) -> dict[str, Any]:
+    """构造 Tushare -> PIT Qlib -> TY-Factors -> 回测工作流。"""
+    root = Path(artifact_root).resolve()
+    values = {
+        "ts_codes": ts_codes,
+        "start_date": start_date,
+        "end_date": end_date,
+        "snapshot_dir": str(root / "snapshot"),
+        "include_events": True,
+        "adjustment_policy": "pit",
+        "output_dir": str(root / "provider"),
+        "incremental": True,
+        "factor_set": "ty_factors",
+        "selected_json": "[]",
+        "custom_json": "[]",
+        "features": None,
+        "factor_output_dir": str(root / "factors"),
+        "label_horizon": 0,
+        # 留空时由 Dataset 后端根据数据日历自动生成 train/valid/test。
+        "train_start": "",
+        "train_end": "",
+        "test_start": "",
+        "test_end": "",
+        "model_type": "linear",
+        "params_json": "{}",
+        "artifact_dir": str(root / "model"),
+        "segment": "test",
+        "topk": 1,
+        "n_drop": 0,
+        "transaction_cost_bps": 5.0,
+        "report_dir": str(root / "report"),
+    }
+    links = [
+        _link(1, (1, 0), (2, 0), "TUSHARE_CONFIG"),
+        _link(2, (2, 0), (3, 0), "MARKET_DATA"),
+        _link(3, (3, 0), (4, 0), "QLIB_EXPORT"),
+        _link(4, (3, 0), (5, 0), "QLIB_EXPORT"),
+        _link(5, (4, 0), (5, 5), "QLIB_FEATURE_SET"),
+        _link(6, (5, 0), (7, 0), "QLIB_DATASET"),
+        _link(7, (4, 0), (7, 3), "QLIB_FEATURE_SET"),
+        _link(8, (6, 0), (7, 1), "QLIB_MODEL_SPEC"),
+        _link(9, (7, 0), (8, 0), "QLIB_TRAINED_MODEL"),
+        _link(10, (5, 0), (8, 1), "QLIB_DATASET"),
+        _link(11, (4, 0), (8, 3), "QLIB_FEATURE_SET"),
+        _link(12, (8, 0), (9, 0), "QLIB_SIGNAL_TABLE"),
+        _link(13, (9, 0), (10, 0), "QLIB_BACKTEST_RESULT"),
+    ]
+    links_by_input = {
+        (2, "config"): 1,
+        (3, "market_data"): 2,
+        (4, "export"): 3,
+        (5, "export"): 4,
+        (5, "features"): 5,
+        (7, "dataset"): 6,
+        (7, "features"): 7,
+        (7, "model"): 8,
+        (8, "trained_model"): 9,
+        (8, "dataset"): 10,
+        (8, "features"): 11,
+        (9, "signal"): 12,
+        (10, "backtest_result"): 13,
+    }
+    links_by_output = {
+        1: {0: [1]},
+        2: {0: [2]},
+        3: {0: [3, 4]},
+        4: {0: [5, 7, 11]},
+        5: {0: [4, 6, 10]},
+        6: {0: [8]},
+        7: {0: [9]},
+        8: {0: [12]},
+        9: {0: [13]},
+    }
+    specs = [
+        (1, "TushareConfig", (0, 0), (400, 160), 0, "Tushare 配置", "#276b74", "#1d4d53"),
+        (2, "TushareDailyFetch", (500, 0), (460, 260), 1, "Tushare 日线同步", "#276b74", "#1d4d53"),
+        (3, "TushareToQlib", (1040, 0), (460, 230), 2, "PIT 复权与 Qlib 转换", "#356b8c", "#254b63"),
+        (4, "TYFactorCompute", (1580, 0), (460, 300), 3, "TY-Factors 计算", "#6d5a35", "#4d3f26"),
+        (5, "QlibDataset", (2120, 0), (500, 340), 4, "Dataset 与标签", "#6d5a35", "#4d3f26"),
+        (6, "QlibModel", (2120, 430), (460, 200), 3, "模型配置", "#6d5a35", "#4d3f26"),
+        (7, "QlibTrain", (2700, 0), (460, 280), 5, "模型训练", "#6d5a35", "#4d3f26"),
+        (8, "QlibPredict", (3240, 0), (460, 240), 6, "信号预测", "#6d5a35", "#4d3f26"),
+        (9, "QlibBacktest", (3780, 0), (460, 260), 7, "TopK 回测", "#794c36", "#593827"),
+        (10, "QlibReport", (4320, 0), (460, 300), 8, "回测报告", "#794c36", "#593827"),
+    ]
+    nodes = []
+    for node_id, node_type, position, size, order, title, color, bgcolor in specs:
+        node_input_links = {name: link_id for (target_id, name), link_id in links_by_input.items() if target_id == node_id}
+        node_values = dict(values)
+        if node_type == "TYFactorCompute":
+            node_values["output_dir"] = values["factor_output_dir"]
+        elif node_type == "QlibReport":
+            node_values["output_dir"] = values["report_dir"]
+        nodes.append(
+            _make_node(
+                node_id,
+                node_type,
+                node_values,
+                node_input_links,
+                links_by_output.get(node_id, {}),
+                position=position,
+                size=size,
+                order=order,
+                title=title,
+                color=color,
+                bgcolor=bgcolor,
+            )
+        )
+    return {
+        "id": str(uuid.UUID("5d91bce2-2dd4-4b64-9d1c-25bda1d0c002")),
+        "revision": 0,
+        "last_node_id": 10,
+        "last_link_id": len(links),
+        "nodes": nodes,
+        "links": links,
+        "groups": [
+            {"title": "数据同步与快照", "bounding": [-20, -20, 1540, 700], "color": "#3f789e", "font_size": 24},
+            {"title": "PIT 复权与 TY-Factors", "bounding": [1540, -20, 1100, 700], "color": "#7f704b", "font_size": 24},
+            {"title": "Dataset、训练与预测", "bounding": [2080, -20, 1640, 820], "color": "#7f704b", "font_size": 24},
+            {"title": "回测与报告", "bounding": [3740, -20, 1100, 700], "color": "#8c573b", "font_size": 24},
+        ],
+        "config": {},
+        "extra": {"workflow_name": "TY Factors Tushare PIT Workflow", "description": "Tushare 日线、point-in-time 复权、TY-Factors、训练、回测和报告。"},
+        "version": 0.4,
+    }
+
+
 def validate_workflow(workflow: dict[str, Any]) -> list[str]:
     """检查工作流是否能被编辑器恢复为与节点定义一致的图。"""
 
@@ -314,6 +446,8 @@ def validate_workflow(workflow: dict[str, Any]) -> list[str]:
             errors.append(f"链接 {link_id} 未出现在目标输入槽")
         if source_slot < len(source_outputs) and source_outputs[source_slot].get("type") != link_type:
             errors.append(f"链接 {link_id} 类型与来源输出不一致")
+        if target_slot < len(target_inputs) and target_inputs[target_slot].get("type") != link_type:
+            errors.append(f"链接 {link_id} 类型与目标输入不一致")
     return errors
 
 

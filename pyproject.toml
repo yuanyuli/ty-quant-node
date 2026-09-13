@@ -1,8 +1,20 @@
 [project]
 name='ty-quant-node'
 version='0.1.0'
-requires-python='>=3.12,<3.13'
-dependencies=["pyqlib>=0.9.7", "pandas>=2.0", "numpy>=1.24", "pyarrow>=12"]
+requires-python='>=3.10'
+dependencies=[
+    "pandas>=2.0",
+    "numpy>=1.24",
+    "pyarrow>=12",
+    "pyyaml>=6",
+    "matplotlib>=3.7",
+    "pillow>=9",
+]
+
+[project.optional-dependencies]
+qlib=["pyqlib>=0.9.7"]
+lightgbm=["lightgbm>=4.0"]
+full=["pyqlib>=0.9.7", "lightgbm>=4.0"]
 
 [build-system]
 requires=["setuptools>=68"]
@@ -10,6 +22,9 @@ build-backend="setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where=["src"]
+
+[tool.setuptools.package-data]
+ty_quant_node=["factors/builtin/*.yaml"]
 
 [tool.pytest.ini_options]
 pythonpath=['src']

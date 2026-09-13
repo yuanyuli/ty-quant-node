@@ -57,3 +57,10 @@ def test_pit_accepts_announcement_before_effective_date():
     )
     assert adjusted.loc[adjusted["datetime"] == "2024-01-01", "ty_price_factor"].iloc[0] == 1.0
     assert adjusted.loc[adjusted["datetime"] == "2024-01-02", "ty_price_factor"].iloc[0] == 2.0
+
+
+def test_pit_accepts_empty_event_list_as_identity_adjustment():
+    adjusted = build_pit_adjustment(_market(), [], snapshot_id="no-events")
+
+    assert adjusted["ty_price_factor"].tolist() == [1.0, 1.0, 1.0]
+    assert adjusted["ty_split_factor"].tolist() == [1.0, 1.0, 1.0]

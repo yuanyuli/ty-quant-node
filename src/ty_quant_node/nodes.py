@@ -15,6 +15,7 @@ from .backend.qlib_backend import build_dataset_from_export, build_dataset_from_
 from .backend.model_backend import ModelSpec, train_model, predict_model, load_model
 from .backend.backtest_backend import backtest, BacktestResult
 from .core.report import create_report, image_to_tensor
+from .core.artifacts import artifact_transaction, atomic_file
 from .factors.compute import compute_ty_factors
 
 
@@ -43,7 +44,7 @@ def _versioned_target(base_dir: str | Path, snapshot_id: str) -> Path:
     if not manifest_path.exists():
         if any((base / name).exists() for name in ("raw.parquet", "dataset.parquet", "features")):
             return base / snapshot_id
-        return base
+        return base if not base.exists() else base / snapshot_id
     try:
         existing = json.loads(manifest_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
@@ -64,6 +65,31 @@ def _stable_frame_hash(frame: pd.DataFrame) -> str:
 def _stable_json_hash(value) -> str:
     payload = json.dumps(value or [], ensure_ascii=False, sort_keys=True, default=str)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _file_hash(path: str | Path) -> str:
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _versioned_run_target(base_dir: str | Path, run_key: str) -> Path:
+    """相同运行键复用版本目录，输入变化时创建不可覆盖的新目录。"""
+
+    base = Path(base_dir).resolve()
+    manifest_path = base / "manifest.json"
+    if not base.exists():
+        return base
+    if manifest_path.exists():
+        try:
+            existing = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            existing = {}
+        if existing.get("run_key") == run_key:
+            return base
+    return base / run_key[:24]
 
 
 def _validate_date_range_inputs(values: tuple[str, ...]) -> None:
@@ -251,16 +277,11 @@ class TushareDailyFetch:
         events = data.attrs.get("events") or []
         snapshot_id = source.snapshot_id(data, events)
         target = _versioned_target(snapshot_dir, snapshot_id)
-        target.mkdir(parents=True, exist_ok=True)
         existing_manifest = target / "manifest.json"
         if existing_manifest.exists():
             existing = json.loads(existing_manifest.read_text(encoding="utf-8"))
             if existing.get("snapshot_id") == snapshot_id:
                 return (Handle("MARKET_DATA", str(target), metadata=existing).to_dict(),)
-        raw_path = target / "raw.parquet"
-        data.to_parquet(raw_path, index=False)
-        if events:
-            pd.DataFrame(events).to_parquet(target / "events.parquet", index=False)
         manifest = {
             "schema_version": "1",
             "snapshot_id": snapshot_id,
@@ -276,7 +297,11 @@ class TushareDailyFetch:
             "factor_hash": _stable_frame_hash(data[["instrument", "datetime", "adj_factor"]]) if "adj_factor" in data else None,
             "events_hash": _stable_json_hash(events),
         }
-        (target / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+        with artifact_transaction(target) as staging:
+            data.to_parquet(staging / "raw.parquet", index=False)
+            if events:
+                pd.DataFrame(events).to_parquet(staging / "events.parquet", index=False)
+            (staging / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
         return (Handle("MARKET_DATA", str(target), metadata=manifest).to_dict(),)
 
 
@@ -329,7 +354,8 @@ class TushareToQlib:
                 existing = json.loads(existing_manifest.read_text(encoding="utf-8"))
                 if existing.get("snapshot_id") == snapshot_id and existing.get("adjustment") == "pit":
                     return (Handle("QLIB_EXPORT", str(output), metadata=existing).to_dict(),)
-            return (export_qlib(adjusted, output, adjustment="pit").to_dict(),)
+            run_key = _stable_json_hash({"snapshot_id": snapshot_id, "adjustment": "pit"})
+            return (export_qlib(adjusted, output, adjustment="pit", run_key=run_key).to_dict(),)
         if adjustment_policy not in {"vendor_qfq", "vendor_hfq", "none"}:
             raise ValueError("不支持的 adjustment_policy")
         adjustment = {"vendor_qfq": "qfq", "vendor_hfq": "hfq", "none": "none"}[adjustment_policy]
@@ -340,7 +366,8 @@ class TushareToQlib:
             existing = json.loads(existing_manifest.read_text(encoding="utf-8"))
             if existing.get("snapshot_id") == snapshot_id and existing.get("adjustment") == adjustment:
                 return (Handle("QLIB_EXPORT", str(output), metadata=existing).to_dict(),)
-        return (export_qlib(raw, output, adjustment=adjustment, allow_unadjusted=adjustment == "none").to_dict(),)
+        run_key = _stable_json_hash({"snapshot_id": snapshot_id, "adjustment": adjustment})
+        return (export_qlib(raw, output, adjustment=adjustment, allow_unadjusted=adjustment == "none", run_key=run_key).to_dict(),)
 
 
 class TYFactorCompute:
@@ -419,7 +446,15 @@ class QlibExport:
         csv_path = _controlled(values, "csv_path", csv_path)
         adjustment = _controlled(values, "adjustment", adjustment)
         output_dir = _controlled(values, "output_root", output_dir)
-        return (export_qlib(pd.read_csv(csv_path), output_dir, adjustment=adjustment).to_dict(),)
+        frame = pd.read_csv(csv_path)
+        run_key = _stable_json_hash({"input": _stable_frame_hash(normalize_market_frame(frame)), "adjustment": adjustment})
+        output = _versioned_run_target(output_dir, run_key)
+        existing_manifest = output / "manifest.json"
+        if existing_manifest.exists():
+            existing = json.loads(existing_manifest.read_text(encoding="utf-8"))
+            if existing.get("run_key") == run_key:
+                return (Handle("QLIB_EXPORT", str(output), metadata=existing).to_dict(),)
+        return (export_qlib(frame, output, adjustment=adjustment, run_key=run_key).to_dict(),)
 
 
 class QlibDataset:
@@ -523,9 +558,28 @@ class QlibTrain:
         else:
             bundle = build_dataset_from_export(dataset_handle.path, segments=dataset_handle.metadata.get("segments"))
         spec = ModelSpec(model_handle.metadata["model_type"], model_handle.metadata.get("params", {}))
-        trained = train_model(bundle, spec, artifact_dir)
+        run_key = _stable_json_hash(
+            {
+                "dataset": dataset_handle.metadata.get("manifest", {}),
+                "feature_path": feature_path,
+                "model_type": spec.model_type,
+                "params": spec.params or {},
+            }
+        )
+        target = _versioned_run_target(artifact_dir, run_key)
+        model_file = target / ("model.json" if spec.model_type == "linear" else "model.txt")
+        manifest_path = target / "manifest.json"
+        if manifest_path.exists() and model_file.exists():
+            cached = json.loads(manifest_path.read_text(encoding="utf-8"))
+            if cached.get("run_key") == run_key:
+                cached_handle = Handle("QLIB_TRAINED_MODEL", str(target), metadata={**cached, "dataset_path": dataset_handle.path})
+                summary = {"model_type": spec.model_type, "rows": int(cached.get("rows", 0)), "feature_names": bundle.feature_names}
+                return (cached_handle.to_dict(), json.dumps(summary, ensure_ascii=False))
+        trained = train_model(bundle, spec, target, run_key=run_key)
         summary = {"model_type": spec.model_type, "rows": int(len(bundle.dataset.prepare("train"))), "feature_names": bundle.feature_names}
-        return (trained.handle(dataset_handle).to_dict(), json.dumps(summary, ensure_ascii=False))
+        trained_payload = trained.handle(dataset_handle).to_dict()
+        trained_payload["metadata"]["run_key"] = run_key
+        return (trained_payload, json.dumps(summary, ensure_ascii=False))
 
 
 class QlibPredict:
@@ -559,8 +613,15 @@ class QlibPredict:
             bundle = build_dataset_from_export(dataset_handle.path, segments=dataset_handle.metadata.get("segments"))
         signal = predict_model(load_model(model_handle), bundle, segment)
         target = Path(model_handle.path) / f"signal_{segment}.parquet"
-        signal.to_parquet(target, index=False)
-        return (Handle("QLIB_SIGNAL_TABLE", str(target), metadata={"rows": len(signal), "dataset_path": dataset_handle.path}).to_dict(),)
+        with atomic_file(target) as staging:
+            signal.to_parquet(staging, index=False)
+        return (
+            Handle(
+                "QLIB_SIGNAL_TABLE",
+                str(target),
+                metadata={"rows": len(signal), "dataset_path": dataset_handle.path, "signal_hash": _file_hash(target)},
+            ).to_dict(),
+        )
 
 
 class QlibBacktest:
@@ -582,14 +643,38 @@ class QlibBacktest:
         n_drop = _controlled(values, "n_drop", n_drop)
         transaction_cost_bps = _controlled(values, "transaction_cost_bps", transaction_cost_bps)
         signal_handle = _handle(signal)
+        signal_hash = str(signal_handle.metadata.get("signal_hash") or _file_hash(signal_handle.path))
+        run_key = _stable_json_hash(
+            {
+                "signal_hash": signal_hash,
+                "topk": int(topk),
+                "n_drop": int(n_drop),
+                "transaction_cost_bps": float(transaction_cost_bps),
+            }
+        )
+        target = _versioned_run_target(Path(signal_handle.path).parent / "backtest", run_key)
+        manifest_path = target / "manifest.json"
+        metrics_path = target / "metrics.json"
+        if manifest_path.exists() and metrics_path.exists() and (target / "equity.csv").exists():
+            cached_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            if cached_manifest.get("run_key") == run_key:
+                cached_metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
+                cached_handle = Handle("QLIB_BACKTEST_RESULT", str(target), metadata={**cached_metrics, "run_key": run_key})
+                return cached_handle.to_dict(), json.dumps(cached_metrics, ensure_ascii=False)
         table = pd.read_parquet(signal_handle.path)
         result = backtest(table, topk=int(topk), n_drop=int(n_drop), transaction_cost_bps=float(transaction_cost_bps))
-        target = Path(signal_handle.path).parent / "backtest"
-        target.mkdir(parents=True, exist_ok=True)
-        result.equity.to_csv(target / "equity.csv", index=False)
-        (target / "metrics.json").write_text(json.dumps(result.metrics, ensure_ascii=False, indent=2), encoding="utf-8")
-        result.signal.to_parquet(target / "signal.parquet", index=False)
-        return (Handle("QLIB_BACKTEST_RESULT", str(target), metadata=result.metrics).to_dict(), json.dumps(result.metrics, ensure_ascii=False))
+        with artifact_transaction(target) as staging:
+            result.equity.to_csv(staging / "equity.csv", index=False)
+            (staging / "metrics.json").write_text(json.dumps(result.metrics, ensure_ascii=False, indent=2), encoding="utf-8")
+            result.signal.to_parquet(staging / "signal.parquet", index=False)
+            (staging / "manifest.json").write_text(
+                json.dumps({"schema_version": "1", "run_key": run_key, "metrics": result.metrics}, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+        return (
+            Handle("QLIB_BACKTEST_RESULT", str(target), metadata={**result.metrics, "run_key": run_key}).to_dict(),
+            json.dumps(result.metrics, ensure_ascii=False),
+        )
 
 
 class QlibReport:
@@ -610,10 +695,19 @@ class QlibReport:
         values = _control_values(control)
         output_dir = _controlled(values, "report_dir", output_dir)
         handle = _handle(backtest_result)
-        metrics = json.loads((Path(handle.path) / "metrics.json").read_text(encoding="utf-8"))
+        metrics_path = Path(handle.path) / "metrics.json"
+        metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
         equity = pd.read_csv(Path(handle.path) / "equity.csv")
         result = BacktestResult(metrics, equity, pd.DataFrame())
-        artifact = create_report(result, output_dir)
+        run_key = _stable_json_hash({"backtest": _file_hash(metrics_path), "output_dir": str(Path(output_dir).resolve())})
+        target = _versioned_run_target(output_dir, run_key)
+        report_manifest = target / "manifest.json"
+        if report_manifest.exists() and (target / "summary.json").exists() and (target / "equity.png").exists():
+            cached = json.loads(report_manifest.read_text(encoding="utf-8"))
+            if cached.get("run_key") == run_key:
+                summary = json.loads((target / "summary.json").read_text(encoding="utf-8"))
+                return json.dumps(summary, ensure_ascii=False), image_to_tensor(target / "equity.png"), "TY Quant 回测报告已生成"
+        artifact = create_report(result, target, metadata={"run_key": run_key})
         return (json.dumps(artifact.summary, ensure_ascii=False), image_to_tensor(artifact.image_path), "TY Quant 回测报告已生成")
 
 

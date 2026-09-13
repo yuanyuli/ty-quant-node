@@ -1,7 +1,7 @@
 name: TY_MOM_5
 version: "1.0"
 category: momentum
-expression: "Ref($ty_close, 5) / $ty_close - 1"
+expression: "$ty_close / Ref($ty_close, 5) - 1"
 inputs: [ty_close]
 lookback: 5
 adjustment_policy: point_in_time
@@ -10,7 +10,7 @@ null_policy: drop
 name: TY_MOM_20
 version: "1.0"
 category: momentum
-expression: "Ref($ty_close, 20) / $ty_close - 1"
+expression: "$ty_close / Ref($ty_close, 20) - 1"
 inputs: [ty_close]
 lookback: 20
 adjustment_policy: point_in_time

@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 
 from ..core.handles import Handle
+from ..core.artifacts import artifact_transaction
 from ..data import apply_adjustment
 
 
@@ -59,40 +60,16 @@ def _write_bin(path: Path, values: np.ndarray, start_index: int = 0) -> None:
     np.hstack(([float(start_index)], np.asarray(values, dtype=np.float32))).astype("<f4").tofile(path)
 
 
-def export_qlib(frame: pd.DataFrame, output_dir: str | Path, *, adjustment="qfq", allow_unadjusted=False) -> Handle:
-    raw = normalize_market_frame(frame)
-    if adjustment == "pit":
-        required = {"ty_open", "ty_high", "ty_low", "ty_close", "ty_volume", "ty_price_factor"}
-        missing = required - set(raw.columns)
-        if missing:
-            raise ValueError(f"PIT 行情缺少字段: {', '.join(sorted(missing))}")
-        adjusted = raw.copy()
-        for standard, pit_name in {
-            "open": "ty_open",
-            "high": "ty_high",
-            "low": "ty_low",
-            "close": "ty_close",
-            "volume": "ty_volume",
-        }.items():
-            adjusted[standard] = pd.to_numeric(adjusted[pit_name], errors="coerce")
-        adjusted["factor"] = pd.to_numeric(adjusted["ty_price_factor"], errors="coerce")
-        if "ty_vwap" in adjusted:
-            adjusted["vwap"] = pd.to_numeric(adjusted["ty_vwap"], errors="coerce")
-        adjusted.attrs.update(raw.attrs)
-        adjusted.attrs.update(
-            {
-                "adjustment": "pit",
-                "point_in_time": bool(raw.attrs.get("point_in_time", False)),
-                "adjustment_source": raw.attrs.get("adjustment_source"),
-                "event_count": int(raw.attrs.get("event_count", 0)),
-                "factor_definition": "ty_price_adjusted/original",
-            }
-        )
-    else:
-        adjusted = apply_adjustment(raw, adjustment, allow_unadjusted=allow_unadjusted)
+def _write_qlib_artifact(
+    adjusted: pd.DataFrame,
+    raw: pd.DataFrame,
+    output: Path,
+    adjustment: str,
+    run_key: str = "",
+) -> dict:
+    """把已校验的 provider 写入 staging 目录并返回 manifest。"""
+
     adjusted["datetime"] = adjusted["datetime"].dt.normalize()
-    output = Path(output_dir).resolve()
-    output.mkdir(parents=True, exist_ok=True)
     calendar = sorted(pd.to_datetime(adjusted["datetime"]).dt.normalize().unique())
     if not calendar:
         raise ValueError("行情数据为空")
@@ -138,6 +115,7 @@ def export_qlib(frame: pd.DataFrame, output_dir: str | Path, *, adjustment="qfq"
         "quality_errors": adjusted.attrs.get("quality_errors", 0),
         "raw_hash": _frame_hash(raw),
         "factor_hash": _frame_hash(raw[["instrument", "datetime", "adj_factor"]]) if "adj_factor" in raw else None,
+        "run_key": str(run_key or ""),
     }
     (output / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     manifest["files"] = {
@@ -146,6 +124,50 @@ def export_qlib(frame: pd.DataFrame, output_dir: str | Path, *, adjustment="qfq"
         "dataset": _sha256_file(output / "dataset.parquet"),
     }
     (output / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    return manifest
+
+
+def export_qlib(
+    frame: pd.DataFrame,
+    output_dir: str | Path,
+    *,
+    adjustment="qfq",
+    allow_unadjusted=False,
+    run_key: str = "",
+) -> Handle:
+    raw = normalize_market_frame(frame)
+    if adjustment == "pit":
+        required = {"ty_open", "ty_high", "ty_low", "ty_close", "ty_volume", "ty_price_factor"}
+        missing = required - set(raw.columns)
+        if missing:
+            raise ValueError(f"PIT 行情缺少字段: {', '.join(sorted(missing))}")
+        adjusted = raw.copy()
+        for standard, pit_name in {
+            "open": "ty_open",
+            "high": "ty_high",
+            "low": "ty_low",
+            "close": "ty_close",
+            "volume": "ty_volume",
+        }.items():
+            adjusted[standard] = pd.to_numeric(adjusted[pit_name], errors="coerce")
+        adjusted["factor"] = pd.to_numeric(adjusted["ty_price_factor"], errors="coerce")
+        if "ty_vwap" in adjusted:
+            adjusted["vwap"] = pd.to_numeric(adjusted["ty_vwap"], errors="coerce")
+        adjusted.attrs.update(raw.attrs)
+        adjusted.attrs.update(
+            {
+                "adjustment": "pit",
+                "point_in_time": bool(raw.attrs.get("point_in_time", False)),
+                "adjustment_source": raw.attrs.get("adjustment_source"),
+                "event_count": int(raw.attrs.get("event_count", 0)),
+                "factor_definition": "ty_price_adjusted/original",
+            }
+        )
+    else:
+        adjusted = apply_adjustment(raw, adjustment, allow_unadjusted=allow_unadjusted)
+    output = Path(output_dir).resolve()
+    with artifact_transaction(output) as staging:
+        manifest = _write_qlib_artifact(adjusted, raw, staging, adjustment, run_key=run_key)
     return Handle("QLIB_EXPORT", str(output), metadata=manifest)
 
 

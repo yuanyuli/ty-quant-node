@@ -72,6 +72,8 @@ ty_volume(t) = volume_raw(t) / ty_split_factor(t)
 
 `ty_factors` 的每个因子使用 `factors/<category>/<name>.yaml` 描述，至少包含 `name`、`version`、`expression`、`inputs`、`lookback`、`adjustment_policy`、`null_policy`。第一批内置因子包括 `TY_MOM_5`、`TY_MOM_20`、`TY_VOL_20` 和 `TY_VOLUME_RATIO_20`，公式引用 `ty_close`、`ty_volume` 等 PIT 字段。
 
+动量公式固定为 `$ty_close / Ref($ty_close, N) - 1`。兼容计算路径与 Qlib 表达式保持同向；回看价格为零时生成 NaN，不能生成无穷值。
+
 ## Alpha158 口径
 
 加载 Qlib `Alpha158DL.get_feature_config()` 的完整定义作为 benchmark，不修改原始表达式。Alpha158 模式必须使用 PIT provider 的标准复权字段，并采用 Qlib 默认标签 `Ref($close, -2) / Ref($close, -1) - 1`；自定义 TY 因子可配置 horizon，但不得使用未来复权事件。
@@ -79,6 +81,10 @@ ty_volume(t) = volume_raw(t) / ty_split_factor(t)
 ## 增量与稳定性
 
 每次同步保存 `raw_hash`、`factor_hash`、`events_hash`、`snapshot_id` 和 `asof`。同一目录出现不同 snapshot 时写入 `<snapshot_id>` 子目录；缓存命中条件是输入快照、因子集合、表达式版本和 Qlib 版本全部一致。历史事件被供应商修订时生成新 provider 版本，旧版本仍可用于复现旧回测。
+
+### 产物提交与重复运行
+
+raw snapshot、Qlib provider、因子特征集、训练模型、回测结果和报告均使用同级 staging 目录构建，再通过原子目录替换提交。目标已经存在时不得覆盖；节点根据输入内容和参数计算运行键，相同运行键复用已有 manifest，运行键变化则写入新的短 hash 子目录。任何写入异常都必须删除 staging，不能留下缺少 manifest 的半成品目录。模型、回测和报告 manifest 还要记录各自的运行键及上游摘要，以便在 ComfyUI 中重复执行时得到确定的句柄路径。
 
 ## 验收标准
 

@@ -1,5 +1,5 @@
 import pandas as pd
-from ty_quant_node.engine import train_predict, backtest
+from ty_quant_node.engine import train_predict, backtest, save_report
 
 def fixture():
     rows=[]
@@ -12,3 +12,13 @@ def test_end_to_end():
     result=train_predict(fixture(),"qfq"); metrics,curve=backtest(result,1)
     assert len(result["data"]) > 0
     assert len(curve) > 0 and "total_return" in metrics
+
+
+def test_compat_report_publishes_atomic_directory(tmp_path):
+    result = train_predict(fixture(), "qfq")
+    metrics, curve = backtest(result, 1)
+
+    output = save_report(metrics, curve, tmp_path / "report")
+
+    assert (tmp_path / "report" / "metrics.json").exists()
+    assert output == str((tmp_path / "report").resolve())

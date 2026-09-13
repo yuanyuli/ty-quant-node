@@ -6,6 +6,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from ..core.artifacts import artifact_transaction
+
 
 @dataclass(frozen=True)
 class ModelSpec:
@@ -39,7 +41,7 @@ class TrainedModel:
         )
 
 
-def train_model(bundle, spec: ModelSpec, artifact_dir: str | Path) -> TrainedModel:
+def train_model(bundle, spec: ModelSpec, artifact_dir: str | Path, *, run_key: str = "") -> TrainedModel:
     train = bundle.dataset.prepare("train")
     train = train.dropna(subset=bundle.feature_names + ["label"])
     if train.empty:
@@ -47,12 +49,10 @@ def train_model(bundle, spec: ModelSpec, artifact_dir: str | Path) -> TrainedMod
     x = train[bundle.feature_names].to_numpy(dtype=float)
     y = train["label"].to_numpy(dtype=float)
     artifact = Path(artifact_dir).resolve()
-    artifact.mkdir(parents=True, exist_ok=True)
     if spec.model_type == "linear":
         design = np.c_[np.ones(len(x)), x]
         coefficients = np.linalg.lstsq(design, y, rcond=None)[0]
         model = coefficients
-        (artifact / "model.json").write_text(json.dumps({"type": "linear", "feature_names": bundle.feature_names, "coefficients": coefficients.tolist()}), encoding="utf-8")
     else:
         from lightgbm import LGBMRegressor
 
@@ -60,7 +60,24 @@ def train_model(bundle, spec: ModelSpec, artifact_dir: str | Path) -> TrainedMod
         params.update(spec.params or {})
         model = LGBMRegressor(random_state=42, **params)
         model.fit(x, y)
-        model.booster_.save_model(str(artifact / "model.txt"))
+    manifest = {
+        "schema_version": "1",
+        "run_key": str(run_key or ""),
+        "model_type": spec.model_type,
+        "params": spec.params or {},
+        "feature_names": list(bundle.feature_names),
+        "rows": int(len(train)),
+        "dataset_manifest": bundle.manifest,
+    }
+    with artifact_transaction(artifact) as staging:
+        if spec.model_type == "linear":
+            (staging / "model.json").write_text(
+                json.dumps({"type": "linear", "feature_names": bundle.feature_names, "coefficients": coefficients.tolist()}),
+                encoding="utf-8",
+            )
+        else:
+            model.booster_.save_model(str(staging / "model.txt"))
+        (staging / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
     return TrainedModel(spec, model, bundle.feature_names, artifact)
 
 

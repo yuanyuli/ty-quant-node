@@ -61,6 +61,8 @@ def _as_events(events: Iterable[dict] | pd.DataFrame | None) -> pd.DataFrame:
     if events is None:
         return pd.DataFrame(columns=sorted(REQUIRED_EVENT_FIELDS))
     result = events.copy() if isinstance(events, pd.DataFrame) else pd.DataFrame(list(events))
+    if result.empty:
+        return pd.DataFrame(columns=sorted(REQUIRED_EVENT_FIELDS))
     missing = REQUIRED_EVENT_FIELDS - set(result.columns)
     if missing:
         raise ValueError(f"复权事件缺少字段: {', '.join(sorted(missing))}")

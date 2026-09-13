@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 
 from ..core.handles import Handle
+from ..core.artifacts import artifact_transaction
 from .registry import FactorSpec, load_alpha158_specs, load_factor_specs
 
 
@@ -90,7 +91,8 @@ def _direct_ty_factor(frame: pd.DataFrame, spec: FactorSpec) -> pd.Series:
     groups = ordered.groupby("instrument", sort=False)
     if spec.name.startswith("TY_MOM_"):
         window = int(spec.name.rsplit("_", 1)[1])
-        values = groups["ty_close"].shift(window) / ordered["ty_close"] - 1.0
+        lagged = groups["ty_close"].shift(window)
+        values = ordered["ty_close"] / lagged.where(lagged != 0) - 1.0
     elif spec.name == "TY_VOL_20":
         returns = groups["ty_close"].pct_change()
         values = returns.groupby(ordered["instrument"], sort=False).rolling(20, min_periods=20).std().reset_index(level=0, drop=True)
@@ -120,9 +122,8 @@ def _qlib_features(provider: Path, specs: list[FactorSpec], frame: pd.DataFrame)
         raise RuntimeError("当前 Python 环境没有 Qlib，无法计算 Alpha158/custom 因子") from exc
     try:
         qlib.init(provider_uri=str(provider), region="cn", dataset_cache=None, expression_cache=None, clear_mem_cache=True)
-    except Exception:
-        # Qlib 在 ComfyUI 进程中可能已被初始化；此时继续使用当前全局 provider。
-        pass
+    except (OSError, TypeError, ValueError) as exc:
+        raise RuntimeError(f"Qlib 初始化失败: {type(exc).__name__}: {exc}") from exc
     dates = pd.to_datetime(frame["datetime"])
     loader = QlibDataLoader(config={"feature": ([spec.expression for spec in specs], [spec.name for spec in specs])})
     loaded = loader.load(
@@ -161,14 +162,17 @@ def compute_ty_factors(
     frame["datetime"] = pd.to_datetime(frame["datetime"]).dt.normalize()
     frame["instrument"] = frame["instrument"].astype(str).str.upper()
     key = _hash_payload({"provider": manifest.get("files", manifest.get("raw_hash")), "factor_set": factor_set, "specs": [spec.__dict__ for spec in specs]})
-    output = Path(output_dir).resolve()
-    output.mkdir(parents=True, exist_ok=True)
+    base_output = Path(output_dir).resolve()
+    output = base_output
     result_path = output / "features.parquet"
     result_manifest_path = output / "manifest.json"
     if result_manifest_path.exists() and result_path.exists():
         cached = json.loads(result_manifest_path.read_text(encoding="utf-8"))
         if cached.get("cache_key") == key:
             return Handle("QLIB_FEATURE_SET", str(output), metadata=cached)
+        output = base_output / key[:24]
+    elif base_output.exists() and any(base_output.iterdir()):
+        output = base_output / key[:24]
 
     result = frame[["instrument", "datetime"]].copy()
     if factor_set == "ty_factors":
@@ -185,7 +189,6 @@ def compute_ty_factors(
         result = _qlib_features(provider, specs, frame)
 
     quality = {spec.name: int(result[spec.name].isna().sum()) for spec in specs}
-    result.to_parquet(result_path, index=False)
     output_manifest = {
         "schema_version": "1",
         "cache_key": key,
@@ -198,5 +201,10 @@ def compute_ty_factors(
         "quality_nan_counts": quality,
         "rows": len(result),
     }
-    result_manifest_path.write_text(json.dumps(output_manifest, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+    with artifact_transaction(output) as staging:
+        result.to_parquet(staging / "features.parquet", index=False)
+        (staging / "manifest.json").write_text(
+            json.dumps(output_manifest, ensure_ascii=False, indent=2, default=str),
+            encoding="utf-8",
+        )
     return Handle("QLIB_FEATURE_SET", str(output), metadata=output_manifest)

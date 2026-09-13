@@ -22,6 +22,14 @@
       "mode": 0,
       "inputs": [
         {
+          "name": "data_source",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "data_source"
+          }
+        },
+        {
           "name": "csv_path",
           "type": "STRING",
           "link": null,
@@ -30,24 +38,56 @@
           }
         },
         {
-          "name": "adjustment",
-          "type": "COMBO",
-          "link": null,
-          "widget": {
-            "name": "adjustment"
-          }
-        },
-        {
-          "name": "output_root",
+          "name": "ts_codes",
           "type": "STRING",
           "link": null,
           "widget": {
-            "name": "output_root"
+            "name": "ts_codes"
+          }
+        },
+        {
+          "name": "query_start",
+          "type": "TY_DATE",
+          "link": null,
+          "widget": {
+            "name": "query_start"
+          }
+        },
+        {
+          "name": "query_end",
+          "type": "TY_DATE",
+          "link": null,
+          "widget": {
+            "name": "query_end"
+          }
+        },
+        {
+          "name": "adjustment_mode",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "adjustment_mode"
+          }
+        },
+        {
+          "name": "include_events",
+          "type": "BOOLEAN",
+          "link": null,
+          "widget": {
+            "name": "include_events"
+          }
+        },
+        {
+          "name": "incremental",
+          "type": "BOOLEAN",
+          "link": null,
+          "widget": {
+            "name": "incremental"
           }
         },
         {
           "name": "train_start",
-          "type": "STRING",
+          "type": "TY_DATE",
           "link": null,
           "widget": {
             "name": "train_start"
@@ -55,7 +95,7 @@
         },
         {
           "name": "train_end",
-          "type": "STRING",
+          "type": "TY_DATE",
           "link": null,
           "widget": {
             "name": "train_end"
@@ -63,7 +103,7 @@
         },
         {
           "name": "test_start",
-          "type": "STRING",
+          "type": "TY_DATE",
           "link": null,
           "widget": {
             "name": "test_start"
@@ -71,10 +111,34 @@
         },
         {
           "name": "test_end",
-          "type": "STRING",
+          "type": "TY_DATE",
           "link": null,
           "widget": {
             "name": "test_end"
+          }
+        },
+        {
+          "name": "factor_set",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "factor_set"
+          }
+        },
+        {
+          "name": "selected_json",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "selected_json"
+          }
+        },
+        {
+          "name": "custom_json",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "custom_json"
           }
         },
         {
@@ -91,14 +155,6 @@
           "link": null,
           "widget": {
             "name": "params_json"
-          }
-        },
-        {
-          "name": "artifact_dir",
-          "type": "STRING",
-          "link": null,
-          "widget": {
-            "name": "artifact_dir"
           }
         },
         {
@@ -134,99 +190,11 @@
           }
         },
         {
-          "name": "report_dir",
+          "name": "artifact_root",
           "type": "STRING",
           "link": null,
           "widget": {
-            "name": "report_dir"
-          }
-        },
-        {
-          "name": "ts_codes",
-          "type": "STRING",
-          "link": null,
-          "widget": {
-            "name": "ts_codes"
-          }
-        },
-        {
-          "name": "start_date",
-          "type": "STRING",
-          "link": null,
-          "widget": {
-            "name": "start_date"
-          }
-        },
-        {
-          "name": "end_date",
-          "type": "STRING",
-          "link": null,
-          "widget": {
-            "name": "end_date"
-          }
-        },
-        {
-          "name": "snapshot_dir",
-          "type": "STRING",
-          "link": null,
-          "widget": {
-            "name": "snapshot_dir"
-          }
-        },
-        {
-          "name": "include_events",
-          "type": "BOOLEAN",
-          "link": null,
-          "widget": {
-            "name": "include_events"
-          }
-        },
-        {
-          "name": "adjustment_policy",
-          "type": "COMBO",
-          "link": null,
-          "widget": {
-            "name": "adjustment_policy"
-          }
-        },
-        {
-          "name": "incremental",
-          "type": "BOOLEAN",
-          "link": null,
-          "widget": {
-            "name": "incremental"
-          }
-        },
-        {
-          "name": "factor_set",
-          "type": "COMBO",
-          "link": null,
-          "widget": {
-            "name": "factor_set"
-          }
-        },
-        {
-          "name": "selected_json",
-          "type": "STRING",
-          "link": null,
-          "widget": {
-            "name": "selected_json"
-          }
-        },
-        {
-          "name": "custom_json",
-          "type": "STRING",
-          "link": null,
-          "widget": {
-            "name": "custom_json"
-          }
-        },
-        {
-          "name": "factor_output_dir",
-          "type": "STRING",
-          "link": null,
-          "widget": {
-            "name": "factor_output_dir"
+            "name": "artifact_root"
           }
         }
       ],
@@ -253,60 +221,52 @@
         "Node name for S&R": "QlibControl"
       },
       "widgets_values": [
-        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\tests\\fixtures\\market.csv",
-        "qfq",
-        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\comfyui-mvp\\provider",
+        "local_csv",
+        "D:\\work_station\\ty-comfyui-node\\examples\\market.csv",
+        "",
+        "2024-01-01",
+        "2024-12-31",
+        "vendor_qfq",
+        false,
+        true,
         "2024-01-01",
         "2024-01-03",
         "2024-01-04",
         "2024-01-06",
+        "ty_factors",
+        "[]",
+        "[]",
         "linear",
         "{}",
-        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\comfyui-mvp\\model",
         "test",
         1,
         0,
         5.0,
-        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\comfyui-mvp\\report",
-        "000001.SZ",
-        "20240101",
-        "20241231",
-        "outputs/ty_quant/snapshots",
-        true,
-        "pit",
-        true,
-        "ty_factors",
-        "[]",
-        "[]",
-        "outputs/ty_quant/factors"
+        "D:\\work_station\\ty-comfyui-node\\outputs\\ty_quant"
       ],
       "widgets_values_named": {
-        "csv_path": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\tests\\fixtures\\market.csv",
-        "adjustment": "qfq",
-        "output_root": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\comfyui-mvp\\provider",
+        "data_source": "local_csv",
+        "csv_path": "D:\\work_station\\ty-comfyui-node\\examples\\market.csv",
+        "ts_codes": "",
+        "query_start": "2024-01-01",
+        "query_end": "2024-12-31",
+        "adjustment_mode": "vendor_qfq",
+        "include_events": false,
+        "incremental": true,
         "train_start": "2024-01-01",
         "train_end": "2024-01-03",
         "test_start": "2024-01-04",
         "test_end": "2024-01-06",
+        "factor_set": "ty_factors",
+        "selected_json": "[]",
+        "custom_json": "[]",
         "model_type": "linear",
         "params_json": "{}",
-        "artifact_dir": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\comfyui-mvp\\model",
         "segment": "test",
         "topk": 1,
         "n_drop": 0,
         "transaction_cost_bps": 5.0,
-        "report_dir": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\comfyui-mvp\\report",
-        "ts_codes": "000001.SZ",
-        "start_date": "20240101",
-        "end_date": "20241231",
-        "snapshot_dir": "outputs/ty_quant/snapshots",
-        "include_events": true,
-        "adjustment_policy": "pit",
-        "incremental": true,
-        "factor_set": "ty_factors",
-        "selected_json": "[]",
-        "custom_json": "[]",
-        "factor_output_dir": "outputs/ty_quant/factors"
+        "artifact_root": "D:\\work_station\\ty-comfyui-node\\outputs\\ty_quant"
       },
       "color": "#16727c",
       "bgcolor": "#4f0074"
@@ -337,11 +297,11 @@
           }
         },
         {
-          "name": "adjustment",
+          "name": "adjustment_mode",
           "type": "COMBO",
           "link": null,
           "widget": {
-            "name": "adjustment"
+            "name": "adjustment_mode"
           }
         },
         {
@@ -376,14 +336,14 @@
         "Node name for S&R": "QlibExport"
       },
       "widgets_values": [
-        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\tests\\fixtures\\market.csv",
-        "qfq",
-        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\comfyui-mvp\\provider"
+        "D:\\work_station\\ty-comfyui-node\\examples\\market.csv",
+        "vendor_qfq",
+        "D:\\work_station\\ty-comfyui-node\\outputs\\ty_quant\\provider"
       ],
       "widgets_values_named": {
-        "csv_path": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\tests\\fixtures\\market.csv",
-        "adjustment": "qfq",
-        "output_dir": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\comfyui-mvp\\provider"
+        "csv_path": "D:\\work_station\\ty-comfyui-node\\examples\\market.csv",
+        "adjustment_mode": "vendor_qfq",
+        "output_dir": "D:\\work_station\\ty-comfyui-node\\outputs\\ty_quant\\provider"
       },
       "color": "#356b8c",
       "bgcolor": "#254b63"
@@ -636,10 +596,10 @@
         "Node name for S&R": "QlibTrain"
       },
       "widgets_values": [
-        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\comfyui-mvp\\model"
+        "outputs/ty_quant/model"
       ],
       "widgets_values_named": {
-        "artifact_dir": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\comfyui-mvp\\model"
+        "artifact_dir": "outputs/ty_quant/model"
       },
       "color": "#6d5a35",
       "bgcolor": "#4d3f26"
@@ -872,10 +832,10 @@
         "Node name for S&R": "QlibReport"
       },
       "widgets_values": [
-        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\comfyui-mvp\\report"
+        "D:\\work_station\\ty-comfyui-node\\outputs\\ty_quant\\report"
       ],
       "widgets_values_named": {
-        "output_dir": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\.artifacts\\comfyui-mvp\\report"
+        "output_dir": "D:\\work_station\\ty-comfyui-node\\outputs\\ty_quant\\report"
       },
       "color": "#794c36",
       "bgcolor": "#593827"
@@ -1044,7 +1004,8 @@
   "config": {},
   "extra": {
     "workflow_name": "TY Quant Qlib MVP",
-    "description": "H3 导演工作台式的 Qlib 日线复权、训练、预测、回测和报告闭环。"
+    "description": "H3 导演工作台式的 Qlib 日线复权、训练、预测、回测和报告闭环。",
+    "control_schema_version": "2"
   },
   "version": 0.4
 }

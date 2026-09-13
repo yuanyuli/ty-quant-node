@@ -41,8 +41,13 @@ def test_generated_workflow_has_control_fanout_and_complete_ports(tmp_path):
     }
     report = next(node for node in workflow["nodes"] if node["type"] == "QlibReport")
     assert [output["type"] for output in report["outputs"]] == ["STRING", "IMAGE", "STRING"]
-    assert report["widgets_values_named"]["output_dir"].endswith("artifacts\\report") or report["widgets_values_named"]["output_dir"].endswith("artifacts/report")
+    report_dir = report["widgets_values_named"].get("report_dir", report["widgets_values_named"].get("output_dir", ""))
+    assert report_dir.replace("/", "\\").endswith("artifacts\\report")
     assert sum(link[1] == 1 for link in workflow["links"]) == 7
+    control = next(node for node in workflow["nodes"] if node["type"] == "QlibControl")
+    assert control["widgets_values_named"]["data_source"] == "local_csv"
+    assert control["widgets_values_named"]["adjustment_mode"] == "vendor_qfq"
+    assert "output_root" not in control["widgets_values_named"]
 
 
 def test_workflow_to_prompt_preserves_widget_and_link_values(tmp_path):
@@ -52,6 +57,7 @@ def test_workflow_to_prompt_preserves_widget_and_link_values(tmp_path):
 
     assert prompt["1"]["class_type"] == "QlibControl"
     assert prompt["1"]["inputs"]["csv_path"].endswith("market.csv")
+    assert prompt["1"]["inputs"]["data_source"] == "local_csv"
     assert prompt["2"]["inputs"]["control"] == ["1", 0]
     assert prompt["5"]["inputs"]["model"] == ["4", 0]
 
@@ -77,7 +83,12 @@ def test_ty_factors_workflow_has_valid_links_and_api_contract(tmp_path):
     assert prompt["9"]["inputs"]["dataset"] == ["6", 0]
     assert prompt["10"]["inputs"]["signal"] == ["9", 0]
     assert prompt["11"]["inputs"]["backtest_result"] == ["10", 0]
-    assert prompt["5"]["inputs"]["output_dir"].endswith("artifacts\\factors") or prompt["5"]["inputs"]["output_dir"].endswith("artifacts/factors")
-    assert prompt["11"]["inputs"]["output_dir"].endswith("artifacts\\report") or prompt["11"]["inputs"]["output_dir"].endswith("artifacts/report")
+    factor_dir = prompt["5"]["inputs"].get("factor_dir", prompt["5"]["inputs"].get("output_dir", ""))
+    report_dir = prompt["11"]["inputs"].get("report_dir", prompt["11"]["inputs"].get("output_dir", ""))
+    assert factor_dir.replace("/", "\\").endswith("artifacts\\factors")
+    assert report_dir.replace("/", "\\").endswith("artifacts\\report")
     assert prompt["1"]["inputs"]["ts_codes"] == "000001.SZ"
-    assert prompt["1"]["inputs"]["adjustment_policy"] == "pit"
+    assert prompt["1"]["inputs"]["query_start"] == "2024-01-01"
+    assert prompt["1"]["inputs"]["query_end"] == "2024-12-31"
+    assert prompt["1"]["inputs"]["adjustment_mode"] == "pit"
+    assert "start_date" not in prompt["1"]["inputs"]

@@ -21,7 +21,7 @@ EDITOR_FIELDS = {
     "extra",
     "version",
 }
-PRIMITIVE_TYPES = {"STRING", "INT", "FLOAT", "BOOLEAN", "COMBO"}
+PRIMITIVE_TYPES = {"STRING", "INT", "FLOAT", "BOOLEAN", "COMBO", "TY_DATE"}
 
 
 def _type_name(spec: tuple[Any, ...]) -> str:
@@ -132,21 +132,34 @@ def build_mvp_workflow(csv_path: str, artifact_root: str) -> dict[str, Any]:
     csv = str(Path(csv_path).resolve())
     root = Path(artifact_root).resolve()
     values = {
+        "data_source": "local_csv",
         "csv_path": csv,
-        "adjustment": "qfq",
-        "output_root": str(root / "provider"),
+        "ts_codes": "",
+        "query_start": "2024-01-01",
+        "query_end": "2024-12-31",
+        "adjustment_mode": "vendor_qfq",
+        "include_events": False,
+        "incremental": True,
         "train_start": "2024-01-01",
         "train_end": "2024-01-03",
         "test_start": "2024-01-04",
         "test_end": "2024-01-06",
+        "factor_set": "ty_factors",
+        "selected_json": "[]",
+        "custom_json": "[]",
         "model_type": "linear",
         "params_json": "{}",
-        "artifact_dir": str(root / "model"),
+        "artifact_root": str(root),
+        "provider_dir": str(root / "provider"),
+        "snapshot_dir": str(root / "snapshots"),
+        "factor_dir": str(root / "factors"),
+        "model_dir": str(root / "model"),
         "segment": "test",
         "topk": 1,
         "n_drop": 0,
         "transaction_cost_bps": 5.0,
         "report_dir": str(root / "report"),
+        "output_dir": str(root / "provider"),
     }
 
     # Link 1-7 are the H3-style control fan-out; link 8-14 are the data path.
@@ -206,9 +219,9 @@ def build_mvp_workflow(csv_path: str, artifact_root: str) -> dict[str, Any]:
         node_input_links = {name: link_id for (target_id, name), link_id in links_by_input.items() if target_id == node_id}
         node_values = dict(values)
         if node_type == "QlibExport":
-            node_values["output_dir"] = str(root / "provider")
+            node_values.update({"adjustment_mode": "vendor_qfq", "output_dir": str(root / "provider")})
         elif node_type == "QlibReport":
-            node_values["output_dir"] = str(root / "report")
+            node_values.update({"output_dir": str(root / "report")})
         nodes.append(
             _make_node(
                 node_id,
@@ -242,6 +255,7 @@ def build_mvp_workflow(csv_path: str, artifact_root: str) -> dict[str, Any]:
         "extra": {
             "workflow_name": "TY Quant Qlib MVP",
             "description": "H3 导演工作台式的 Qlib 日线复权、训练、预测、回测和报告闭环。",
+            "control_schema_version": "2",
         },
         "version": 0.4,
     }
@@ -256,48 +270,36 @@ def build_ty_factors_workflow(
     """构造 Tushare -> PIT Qlib -> TY-Factors -> 回测工作流。"""
     root = Path(artifact_root).resolve()
     values = {
+        "data_source": "tushare",
         "csv_path": "",
-        "adjustment": "qfq",
-        "output_root": str(root / "provider"),
+        "ts_codes": ts_codes,
+        "query_start": start_date,
+        "query_end": end_date,
+        "adjustment_mode": "pit",
+        "include_events": True,
+        "incremental": True,
+        "artifact_root": str(root),
+        "provider_dir": str(root / "provider"),
+        "snapshot_dir": str(root / "snapshots"),
+        "factor_dir": str(root / "factors"),
         "train_start": "",
         "train_end": "",
         "test_start": "",
         "test_end": "",
-        "model_type": "linear",
-        "params_json": "{}",
-        "artifact_dir": str(root / "model"),
-        "segment": "test",
-        "topk": 1,
-        "n_drop": 0,
-        "transaction_cost_bps": 5.0,
-        "report_dir": str(root / "report"),
-        "ts_codes": ts_codes,
-        "start_date": start_date,
-        "end_date": end_date,
-        "snapshot_dir": str(root / "snapshot"),
-        "include_events": True,
-        "adjustment_policy": "pit",
-        "output_dir": str(root / "provider"),
-        "incremental": True,
         "factor_set": "ty_factors",
         "selected_json": "[]",
         "custom_json": "[]",
-        "features": None,
-        "factor_output_dir": str(root / "factors"),
-        "label_horizon": 0,
-        # 留空时由 Dataset 后端根据数据日历自动生成 train/valid/test。
-        "train_start": "",
-        "train_end": "",
-        "test_start": "",
-        "test_end": "",
         "model_type": "linear",
         "params_json": "{}",
-        "artifact_dir": str(root / "model"),
+        "model_dir": str(root / "model"),
         "segment": "test",
         "topk": 1,
         "n_drop": 0,
         "transaction_cost_bps": 5.0,
         "report_dir": str(root / "report"),
+        "output_dir": str(root / "provider"),
+        "features": None,
+        "label_horizon": 0,
     }
     links = [
         _link(1, (1, 0), (3, 6), "QLIB_CONTROL"),
@@ -379,11 +381,13 @@ def build_ty_factors_workflow(
         if node_type == "TushareConfig":
             node_values.update({"token_source": "environment", "token_env_name": "TUSHARE_TOKEN", "retries": 3})
         elif node_type == "TushareDailyFetch":
-            node_values.update({"snapshot_dir": values["snapshot_dir"], "include_events": values["include_events"]})
+            node_values.update({"query_start": start_date, "query_end": end_date, "snapshot_dir": values["snapshot_dir"], "include_events": values["include_events"]})
         elif node_type == "TushareToQlib":
-            node_values.update({"adjustment_policy": values["adjustment_policy"], "output_dir": values["output_root"], "incremental": values["incremental"]})
+            node_values.update({"adjustment_mode": values["adjustment_mode"], "output_dir": values["provider_dir"], "incremental": values["incremental"]})
         elif node_type == "TYFactorCompute":
-            node_values.update({"output_dir": values["factor_output_dir"]})
+            node_values.update({"output_dir": values["factor_dir"]})
+        elif node_type == "QlibTrain":
+            node_values.update({"artifact_dir": values["model_dir"]})
         elif node_type == "QlibReport":
             node_values.update({"output_dir": values["report_dir"]})
         nodes.append(
@@ -415,7 +419,7 @@ def build_ty_factors_workflow(
             {"title": "预测、回测与报告", "bounding": [3740, -20, 1700, 700], "color": "#8c573b", "font_size": 24},
         ],
         "config": {},
-        "extra": {"workflow_name": "TY Factors Tushare PIT Workflow", "description": "TY Quant 总控统一管理 Tushare 日线、point-in-time 复权、TY-Factors、训练、回测和报告。"},
+        "extra": {"workflow_name": "TY Factors Tushare PIT Workflow", "description": "TY Quant 总控统一管理 Tushare 日线、point-in-time 复权、TY-Factors、训练、回测和报告。", "control_schema_version": "2"},
         "version": 0.4,
     }
 

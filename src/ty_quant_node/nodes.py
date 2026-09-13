@@ -288,6 +288,10 @@ class QlibRuntime:
     def run(self, provider_uri, region="cn", seed=42, experiment_uri=""):
         import random
         import numpy as np
+
+        seed_value = int(seed)
+        random.seed(seed_value)
+        np.random.seed(seed_value)
         path = str(resolve_node_path(provider_uri, must_exist=True)) if provider_uri else ""
         experiment_path = str(resolve_node_path(experiment_uri)) if experiment_uri else ""
         try:
@@ -301,9 +305,7 @@ class QlibRuntime:
             qlib.init(provider_uri=path or None, region=region, dataset_cache=None, expression_cache=None, clear_mem_cache=True)
         except (OSError, TypeError, ValueError, NotImplementedError) as exc:
             raise RuntimeError(f"QlibRuntime 初始化失败: {type(exc).__name__}: {exc}") from exc
-        random.seed(int(seed))
-        np.random.seed(int(seed))
-        return (Handle("QLIB_RUNTIME", path, metadata={"region": region, "seed": int(seed), "experiment_uri": experiment_path, "qlib_version": getattr(qlib, "__version__", "unknown")}).to_dict(),)
+        return (Handle("QLIB_RUNTIME", path, metadata={"region": region, "seed": seed_value, "experiment_uri": experiment_path, "qlib_version": getattr(qlib, "__version__", "unknown")}).to_dict(),)
 
 
 class TushareDailyFetch:
@@ -711,16 +713,64 @@ class QlibPredict:
         else:
             bundle = build_dataset_from_export(dataset_handle.path, segments=dataset_handle.metadata.get("segments"))
         signal = predict_model(load_model(model_handle), bundle, segment)
-        target = Path(model_handle.path) / f"signal_{segment}.parquet"
-        with atomic_file(target) as staging:
-            signal.to_parquet(staging, index=False)
-        return (
-            Handle(
-                "QLIB_SIGNAL_TABLE",
-                str(target),
-                metadata={"rows": len(signal), "dataset_path": dataset_handle.path, "signal_hash": _file_hash(target)},
-            ).to_dict(),
+        model_manifest_path = Path(model_handle.path) / "manifest.json"
+        model_manifest = {}
+        if model_manifest_path.exists():
+            model_manifest = json.loads(model_manifest_path.read_text(encoding="utf-8"))
+        feature_manifest = {}
+        if feature_path:
+            feature_manifest_path = Path(feature_path) / "manifest.json"
+            if feature_manifest_path.exists():
+                feature_manifest = json.loads(feature_manifest_path.read_text(encoding="utf-8"))
+        dataset_manifest = dataset_handle.metadata.get("manifest", {})
+        run_key = _stable_json_hash(
+            {
+                "model_manifest": model_manifest or {"path": model_handle.path, "metadata": model_handle.metadata},
+                "dataset_manifest": dataset_manifest or {"path": dataset_handle.path, "metadata": dataset_handle.metadata},
+                "feature_manifest": feature_manifest or {"path": feature_path or ""},
+                "segment": str(segment),
+            }
         )
+        target = Path(model_handle.path) / "signals" / run_key[:24]
+        signal_path = target / "signal.parquet"
+        manifest_path = target / "manifest.json"
+        if target.exists():
+            if not manifest_path.exists() or not signal_path.exists():
+                raise RuntimeError(f"预测 artifact 目录不完整，无法覆盖: {target}")
+            existing = json.loads(manifest_path.read_text(encoding="utf-8"))
+            if existing.get("run_key") != run_key:
+                raise RuntimeError(f"预测 artifact 运行键冲突，拒绝覆盖: {target}")
+            expected_hash = str((existing.get("files") or {}).get("signal") or "")
+            actual_hash = _file_hash(signal_path)
+            if not expected_hash or expected_hash != actual_hash:
+                raise ValueError(f"预测 artifact 文件 hash 不匹配: {signal_path}")
+            metadata = {**existing, "signal_hash": actual_hash}
+            return (Handle("QLIB_SIGNAL_TABLE", str(signal_path), metadata=metadata).to_dict(),)
+
+        manifest = {
+            "schema_version": "1",
+            "artifact_type": "prediction",
+            "run_key": run_key,
+            "segment": str(segment),
+            "rows": int(len(signal)),
+            "columns": [str(column) for column in signal.columns],
+            "model_path": str(model_handle.path),
+            "dataset_path": str(dataset_handle.path),
+            "feature_set_path": str(feature_path or ""),
+            "model_manifest": model_manifest,
+            "dataset_manifest": dataset_manifest,
+            "feature_manifest": feature_manifest,
+        }
+        with artifact_transaction(target) as staging:
+            staged_signal = staging / "signal.parquet"
+            signal.to_parquet(staged_signal, index=False)
+            manifest["files"] = {"signal": sha256_file(staged_signal)}
+            (staging / "manifest.json").write_text(
+                json.dumps(manifest, ensure_ascii=False, indent=2, default=str),
+                encoding="utf-8",
+            )
+        metadata = {**manifest, "signal_hash": manifest["files"]["signal"]}
+        return (Handle("QLIB_SIGNAL_TABLE", str(signal_path), metadata=metadata).to_dict(),)
 
 
 class QlibBacktest:

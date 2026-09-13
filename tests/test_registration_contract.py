@@ -1,4 +1,6 @@
 import importlib
+import numpy as np
+import random
 import sys
 import types
 import pytest
@@ -41,6 +43,17 @@ def test_runtime_returns_compat_handle_without_qlib(monkeypatch, tmp_path):
     assert handle["metadata"]["qlib_version"] == "unavailable"
     assert handle["metadata"]["dataset_backend"] == "compat"
     assert handle["path"] == str(tmp_path.resolve())
+
+
+def test_runtime_seeds_compat_backend(monkeypatch, tmp_path):
+    calls = {"python": [], "numpy": []}
+    monkeypatch.setattr(random, "seed", lambda value: calls["python"].append(value))
+    monkeypatch.setattr(np.random, "seed", lambda value: calls["numpy"].append(value))
+    monkeypatch.setitem(sys.modules, "qlib", None)
+
+    QlibRuntime().run(str(tmp_path), "cn", 17, "")
+
+    assert calls == {"python": [17], "numpy": [17]}
 
 
 def test_runtime_wraps_qlib_initialization_error(monkeypatch, tmp_path):

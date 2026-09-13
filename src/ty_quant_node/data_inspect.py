@@ -49,11 +49,12 @@ def create_inspection(frame: pd.DataFrame, output_dir: str | Path, *, instrument
     with artifact_transaction(output) as staging:
         fig, (ax, volume_ax) = plt.subplots(2, 1, figsize=(10, 6), dpi=120, sharex=True, gridspec_kw={"height_ratios": [3, 1]})
         x = range(len(sample))
+        price_columns = {name: (name if name in sample.columns else f"{name}_raw") for name in ("open", "high", "low", "close")}
         for i, (_, row) in enumerate(sample.reset_index(drop=True).iterrows()):
-            color = "#d94841" if row["close_raw"] >= row["open_raw"] else "#2f9e44"
-            ax.vlines(i, row["low_raw"], row["high_raw"], color=color, linewidth=1)
-            bottom = min(row["open_raw"], row["close_raw"])
-            height = max(abs(row["close_raw"] - row["open_raw"]), 1e-8)
+            color = "#d94841" if row[price_columns["close"]] >= row[price_columns["open"]] else "#2f9e44"
+            ax.vlines(i, row[price_columns["low"]], row[price_columns["high"]], color=color, linewidth=1)
+            bottom = min(row[price_columns["open"]], row[price_columns["close"]])
+            height = max(abs(row[price_columns["close"]] - row[price_columns["open"]]), 1e-8)
             ax.add_patch(Rectangle((i - 0.3, bottom), 0.6, height, facecolor=color, edgecolor=color, alpha=0.85))
         ax.set_title(f"{audit['instrument']} K-line sample ({audit['sample_date_range'][0]} to {audit['sample_date_range'][1]})")
         ax.set_ylabel("Price")

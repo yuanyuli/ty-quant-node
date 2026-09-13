@@ -115,44 +115,63 @@ def _validate_date_range_inputs(values: tuple[str, ...]) -> None:
 
 def _validate_control_inputs(
     *,
+    data_source,
     csv_path,
-    adjustment,
-    output_root,
+    ts_codes,
+    query_start,
+    query_end,
+    adjustment_mode,
+    include_events,
+    incremental,
     train_start,
     train_end,
     test_start,
     test_end,
+    factor_set,
+    selected_json,
+    custom_json,
     model_type,
     params_json,
-    artifact_dir,
     segment,
     topk,
     n_drop,
     transaction_cost_bps,
-    report_dir,
-    ts_codes,
-    start_date,
-    end_date,
-    adjustment_policy,
-    factor_set,
-    selected_json,
-    custom_json,
+    artifact_root,
 ):
     """在总控节点边界校验所有会影响运行键的配置。"""
 
-    if str(adjustment) not in {"qfq", "hfq", "none"}:
-        raise ValueError("adjustment 必须是 qfq、hfq 或 none")
+    data_source = str(data_source)
+    if data_source not in {"local_csv", "tushare"}:
+        raise ValueError("data_source 必须是 local_csv 或 tushare")
+    if data_source == "local_csv" and not str(csv_path or "").strip():
+        raise ValueError("local_csv 模式必须填写 csv_path")
+    if data_source == "tushare":
+        if not str(ts_codes or "").strip():
+            raise ValueError("tushare 模式必须填写 ts_codes")
+        query_dates = [bool(str(value or "").strip()) for value in (query_start, query_end)]
+        if any(query_dates) and not all(query_dates):
+            raise ValueError("query_start 和 query_end 必须同时填写")
+        if all(query_dates):
+            try:
+                query_start_value = pd.Timestamp(str(query_start))
+                query_end_value = pd.Timestamp(str(query_end))
+            except (TypeError, ValueError) as exc:
+                raise ValueError("query_start 或 query_end 日期无效") from exc
+            if pd.isna(query_start_value) or pd.isna(query_end_value):
+                raise ValueError("query_start 或 query_end 日期无效")
+            if query_start_value > query_end_value:
+                raise ValueError("query_start 不能晚于 query_end")
+
+    if str(adjustment_mode) not in {"pit", "vendor_qfq", "vendor_hfq", "raw"}:
+        raise ValueError("adjustment_mode 必须是 pit、vendor_qfq、vendor_hfq 或 raw")
     if str(model_type) not in {"linear", "lightgbm"}:
         raise ValueError("model_type 必须是 linear 或 lightgbm")
     if str(segment) not in {"train", "valid", "test"}:
         raise ValueError("segment 必须是 train、valid 或 test")
-    if str(adjustment_policy) not in {"pit", "vendor_qfq", "vendor_hfq", "none"}:
-        raise ValueError("adjustment_policy 不受支持")
     if str(factor_set) not in {"ty_factors", "alpha158", "selected", "custom"}:
         raise ValueError("factor_set 不受支持")
-    for field, value in (("output_root", output_root), ("artifact_dir", artifact_dir), ("report_dir", report_dir)):
-        if not str(value or "").strip():
-            raise ValueError(f"{field} 不能为空")
+    if not str(artifact_root or "").strip():
+        raise ValueError("artifact_root 不能为空")
 
     try:
         topk_value = int(topk)
@@ -171,20 +190,6 @@ def _validate_control_inputs(
         raise ValueError("交易成本必须是非负有限数")
 
     _validate_date_range_inputs((train_start, train_end, test_start, test_end))
-    tushare_dates = [bool(str(value or "").strip()) for value in (start_date, end_date)]
-    if any(tushare_dates) and not all(tushare_dates):
-        raise ValueError("start_date 和 end_date 必须同时填写")
-    if all(tushare_dates):
-        try:
-            start_value = pd.Timestamp(str(start_date))
-            end_value = pd.Timestamp(str(end_date))
-        except (TypeError, ValueError) as exc:
-            raise ValueError("start_date 或 end_date 日期无效") from exc
-        if pd.isna(start_value) or pd.isna(end_value):
-            raise ValueError("start_date 或 end_date 日期无效")
-        if start_value > end_value:
-            raise ValueError("start_date 不能晚于 end_date")
-
     try:
         params = json.loads(params_json or "{}")
     except json.JSONDecodeError as exc:
@@ -267,35 +272,30 @@ class QlibControl:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "csv_path": ("STRING", {"default": ""}),
-                "adjustment": (["qfq", "hfq", "none"],),
-                "output_root": ("STRING", {"default": "outputs/ty_quant"}),
-                "train_start": ("STRING", {"default": ""}),
-                "train_end": ("STRING", {"default": ""}),
-                "test_start": ("STRING", {"default": ""}),
-                "test_end": ("STRING", {"default": ""}),
-                "model_type": (["linear", "lightgbm"],),
-                "params_json": ("STRING", {"default": "{}"}),
-                "artifact_dir": ("STRING", {"default": "outputs/ty_quant/model"}),
-                "segment": (["train", "valid", "test"],),
-                "topk": ("INT", {"default": 1, "min": 1}),
-                "n_drop": ("INT", {"default": 0, "min": 0}),
-                "transaction_cost_bps": ("FLOAT", {"default": 5.0, "min": 0.0}),
-                "report_dir": ("STRING", {"default": "outputs/ty_quant/report"}),
+                "data_source": (["local_csv", "tushare"], {"default": "tushare", "tooltip": "选择行情来源；本地 CSV 和 Tushare 查询参数会按模式显示。"}),
+                "csv_path": ("STRING", {"default": "", "tooltip": "本地行情 CSV 或 Parquet 文件路径，仅 local_csv 模式使用。"}),
+                "ts_codes": ("STRING", {"default": "000001.SZ", "multiline": True, "tooltip": "Tushare 股票代码，可用逗号、分号或换行分隔。"}),
+                "query_start": ("TY_DATE", {"default": "2024-01-01", "tooltip": "Tushare 日线查询开始日期，包含当天。"}),
+                "query_end": ("TY_DATE", {"default": "2024-12-31", "tooltip": "Tushare 日线查询结束日期，包含当天。"}),
+                "adjustment_mode": (["pit", "vendor_qfq", "vendor_hfq", "raw"], {"default": "pit", "tooltip": "复权口径；pit 使用已知公司行动，raw 仅用于检查原始行情。"}),
+                "include_events": ("BOOLEAN", {"default": True, "tooltip": "是否同步分红、送转等公司行动，用于 point-in-time 复权。"}),
+                "incremental": ("BOOLEAN", {"default": True, "tooltip": "复用相同输入的已有快照和产物，避免重复请求和计算。"}),
+                "train_start": ("TY_DATE", {"default": "", "tooltip": "训练区间开始日期；与训练结束日期一起填写。"}),
+                "train_end": ("TY_DATE", {"default": "", "tooltip": "训练区间结束日期；必须早于测试区间开始日期。"}),
+                "test_start": ("TY_DATE", {"default": "", "tooltip": "测试区间开始日期；与测试结束日期一起填写。"}),
+                "test_end": ("TY_DATE", {"default": "", "tooltip": "测试区间结束日期。"}),
+                "factor_set": (["ty_factors", "alpha158", "selected", "custom"], {"default": "ty_factors", "tooltip": "选择因子注册表；TY-Factors 使用带复权和 PIT 口径的公式。"}),
+                "selected_json": ("STRING", {"default": "[]", "tooltip": "selected 模式的因子名称 JSON 数组，例：[\"TY_MOM_5\"]。"}),
+                "custom_json": ("STRING", {"default": "[]", "tooltip": "custom 模式的因子定义 JSON 对象或数组。"}),
+                "model_type": (["linear", "lightgbm"], {"default": "linear", "tooltip": "训练模型类型；lightgbm 需要安装完整 Qlib extras。"}),
+                "params_json": ("STRING", {"default": "{}", "tooltip": "模型参数 JSON 对象；留空对象表示使用默认参数。"}),
+                "segment": (["train", "valid", "test"], {"default": "test", "tooltip": "预测和回测使用的数据分段。"}),
+                "topk": ("INT", {"default": 1, "min": 1, "tooltip": "每天选取预测分数最高的股票数量。"}),
+                "n_drop": ("INT", {"default": 0, "min": 0, "tooltip": "每天跳过排名最前面的股票数量，必须不超过 TopK。"}),
+                "transaction_cost_bps": ("FLOAT", {"default": 5.0, "min": 0.0, "tooltip": "回测单边交易成本，单位为基点。"}),
+                "artifact_root": ("STRING", {"default": "outputs/ty_quant", "tooltip": "统一产物根目录；节点自动创建 provider、snapshots、factors、model、report 子目录。"}),
             },
-            "optional": {
-                "ts_codes": ("STRING", {"default": "000001.SZ", "multiline": True}),
-                "start_date": ("STRING", {"default": "20240101"}),
-                "end_date": ("STRING", {"default": "20241231"}),
-                "snapshot_dir": ("STRING", {"default": "outputs/ty_quant/snapshots"}),
-                "include_events": ("BOOLEAN", {"default": True}),
-                "adjustment_policy": (["pit", "vendor_qfq", "vendor_hfq", "none"], {"default": "pit"}),
-                "incremental": ("BOOLEAN", {"default": True}),
-                "factor_set": (["ty_factors", "alpha158", "selected", "custom"], {"default": "ty_factors"}),
-                "selected_json": ("STRING", {"default": "[]"}),
-                "custom_json": ("STRING", {"default": "[]"}),
-                "factor_output_dir": ("STRING", {"default": "outputs/ty_quant/factors"}),
-            },
+            "optional": {},
         }
 
     RETURN_TYPES = ("QLIB_CONTROL",)
@@ -305,88 +305,86 @@ class QlibControl:
 
     def run(
         self,
+        data_source,
         csv_path,
-        adjustment,
-        output_root,
+        ts_codes,
+        query_start,
+        query_end,
+        adjustment_mode,
+        include_events,
+        incremental,
         train_start,
         train_end,
         test_start,
         test_end,
+        factor_set,
+        selected_json,
+        custom_json,
         model_type,
         params_json,
-        artifact_dir,
         segment,
-        topk=1,
-        n_drop=0,
-        transaction_cost_bps=5.0,
-        report_dir="",
-        ts_codes="",
-        start_date="",
-        end_date="",
-        snapshot_dir="",
-        include_events=True,
-        adjustment_policy="pit",
-        incremental=True,
-        factor_set="ty_factors",
-        selected_json="[]",
-        custom_json="[]",
-        factor_output_dir="",
+        topk,
+        n_drop,
+        transaction_cost_bps,
+        artifact_root,
     ):
         params, topk_value, n_drop_value, transaction_cost_value = _validate_control_inputs(
+            data_source=data_source,
             csv_path=csv_path,
-            adjustment=adjustment,
-            output_root=output_root,
+            ts_codes=ts_codes,
+            query_start=query_start,
+            query_end=query_end,
+            adjustment_mode=adjustment_mode,
+            include_events=include_events,
+            incremental=incremental,
             train_start=train_start,
             train_end=train_end,
             test_start=test_start,
             test_end=test_end,
+            factor_set=factor_set,
+            selected_json=selected_json,
+            custom_json=custom_json,
             model_type=model_type,
             params_json=params_json,
-            artifact_dir=artifact_dir,
             segment=segment,
             topk=topk,
             n_drop=n_drop,
             transaction_cost_bps=transaction_cost_bps,
-            report_dir=report_dir,
-            ts_codes=ts_codes,
-            start_date=start_date,
-            end_date=end_date,
-            adjustment_policy=adjustment_policy,
-            factor_set=factor_set,
-            selected_json=selected_json,
-            custom_json=custom_json,
+            artifact_root=artifact_root,
         )
+        root = Path(str(artifact_root)).expanduser()
         metadata = {
+            "config_schema_version": "2",
+            "data_source": str(data_source),
             "csv_path": str(csv_path),
-            "adjustment": str(adjustment),
-            "output_root": str(output_root),
+            "ts_codes": str(ts_codes),
+            "query_start": str(query_start),
+            "query_end": str(query_end),
+            "adjustment_mode": str(adjustment_mode),
+            "include_events": bool(include_events),
+            "incremental": bool(incremental),
             "train_start": str(train_start),
             "train_end": str(train_end),
             "test_start": str(test_start),
             "test_end": str(test_end),
+            "factor_set": str(factor_set),
+            "selected_json": str(selected_json),
+            "custom_json": str(custom_json),
             "model_type": str(model_type),
             "params_json": json.dumps(params, ensure_ascii=False, sort_keys=True),
             "params": params,
-            "artifact_dir": str(artifact_dir),
             "segment": str(segment),
             "topk": topk_value,
             "n_drop": n_drop_value,
             "transaction_cost_bps": transaction_cost_value,
-            "report_dir": str(report_dir),
-            "ts_codes": str(ts_codes),
-            "start_date": str(start_date),
-            "end_date": str(end_date),
-            "snapshot_dir": str(snapshot_dir),
-            "include_events": bool(include_events),
-            "adjustment_policy": str(adjustment_policy),
-            "incremental": bool(incremental),
-            "factor_set": str(factor_set),
-            "selected_json": str(selected_json),
-            "custom_json": str(custom_json),
-            "factor_output_dir": str(factor_output_dir),
+            "artifact_root": str(artifact_root),
+            "provider_dir": str(root / "provider"),
+            "snapshot_dir": str(root / "snapshots"),
+            "factor_dir": str(root / "factors"),
+            "model_dir": str(root / "model"),
+            "report_dir": str(root / "report"),
         }
         return (Handle("QLIB_CONTROL", "", metadata=metadata).to_dict(),)
-
 
 class QlibRuntime:
     @classmethod
@@ -428,8 +426,8 @@ class TushareDailyFetch:
             "required": {
                 "config": ("TUSHARE_CONFIG",),
                 "ts_codes": ("STRING", {"default": "000001.SZ", "multiline": True}),
-                "start_date": ("STRING", {"default": "20240101"}),
-                "end_date": ("STRING", {"default": "20241231"}),
+                "query_start": ("STRING", {"default": "20240101", "tooltip": "Tushare 日线查询开始日期，格式 YYYYMMDD。"}),
+                "query_end": ("STRING", {"default": "20241231", "tooltip": "Tushare 日线查询结束日期，格式 YYYYMMDD。"}),
                 "snapshot_dir": ("STRING", {"default": "outputs/ty_quant/snapshots"}),
             },
             "optional": {
@@ -443,11 +441,11 @@ class TushareDailyFetch:
     FUNCTION = "run"
     CATEGORY = "TY Quant/Data"
 
-    def run(self, config, ts_codes, start_date, end_date, snapshot_dir, include_events=True, control=None):
+    def run(self, config, ts_codes, query_start, query_end, snapshot_dir, include_events=True, control=None):
         values = _control_values(control)
         ts_codes = _controlled(values, "ts_codes", ts_codes)
-        start_date = _controlled(values, "start_date", start_date)
-        end_date = _controlled(values, "end_date", end_date)
+        query_start = _controlled(values, "query_start", query_start)
+        query_end = _controlled(values, "query_end", query_end)
         snapshot_dir = _controlled(values, "snapshot_dir", snapshot_dir)
         include_events = bool(_controlled(values, "include_events", include_events))
         cfg = _handle(config)
@@ -467,7 +465,7 @@ class TushareDailyFetch:
         if not str(snapshot_dir or "").strip():
             raise ValueError("snapshot_dir 不能为空")
         snapshot_dir = str(resolve_node_path(snapshot_dir))
-        data = source.fetch(codes, start_date, end_date, include_events=bool(include_events))
+        data = source.fetch(codes, query_start, query_end, include_events=bool(include_events))
         events = data.attrs.get("events") or []
         snapshot_id = source.snapshot_id(data, events)
         target = _versioned_target(snapshot_dir, snapshot_id)
@@ -481,7 +479,7 @@ class TushareDailyFetch:
             "snapshot_id": snapshot_id,
             "source": "tushare",
             "ts_codes": codes,
-            "date_range": [str(start_date), str(end_date)],
+            "date_range": [str(query_start), str(query_end)],
             "rows": len(data),
             "event_count": len(events),
             "include_events": bool(include_events),
@@ -511,7 +509,7 @@ class TushareToQlib:
         return {
             "required": {
                 "market_data": ("MARKET_DATA",),
-                "adjustment_policy": (["pit", "vendor_qfq", "vendor_hfq", "none"],),
+                "adjustment_mode": (["pit", "vendor_qfq", "vendor_hfq", "raw"], {"default": "pit", "tooltip": "复权口径；PIT 使用公司行动和复权因子构造 point-in-time 数据。"}),
                 "output_dir": ("STRING", {"default": "outputs/ty_quant/provider"}),
                 "incremental": ("BOOLEAN", {"default": True}),
             },
@@ -523,10 +521,10 @@ class TushareToQlib:
     FUNCTION = "run"
     CATEGORY = "TY Quant/Data"
 
-    def run(self, market_data, adjustment_policy="pit", output_dir="", incremental=True, control=None):
+    def run(self, market_data, adjustment_mode="pit", output_dir="", incremental=True, control=None):
         values = _control_values(control)
-        adjustment_policy = _controlled(values, "adjustment_policy", adjustment_policy)
-        output_dir = _controlled(values, "output_root", output_dir)
+        adjustment_mode = _controlled(values, "adjustment_mode", adjustment_mode)
+        output_dir = _controlled(values, "provider_dir", output_dir)
         incremental = bool(_controlled(values, "incremental", incremental))
         handle = _handle(market_data)
         if handle.kind != "MARKET_DATA":
@@ -542,7 +540,7 @@ class TushareToQlib:
         manifest_path = root / "manifest.json"
         source_manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
         snapshot_id = str(source_manifest.get("snapshot_id") or handle.metadata.get("snapshot_id") or "snapshot")
-        if adjustment_policy == "pit":
+        if adjustment_mode == "pit":
             event_path = root / "events.parquet"
             events = pd.read_parquet(event_path) if event_path.exists() else derive_vendor_events(raw)
             adjusted = build_pit_adjustment(raw, events, snapshot_id=snapshot_id)
@@ -562,10 +560,10 @@ class TushareToQlib:
                     return (Handle("QLIB_EXPORT", str(output), metadata=existing).to_dict(),)
             run_key = _stable_json_hash({"snapshot_id": snapshot_id, "adjustment": "pit"})
             return (export_qlib(adjusted, output, adjustment="pit", run_key=run_key).to_dict(),)
-        if adjustment_policy not in {"vendor_qfq", "vendor_hfq", "none"}:
-            raise ValueError("不支持的 adjustment_policy")
-        adjustment = {"vendor_qfq": "qfq", "vendor_hfq": "hfq", "none": "none"}[adjustment_policy]
-        raw.attrs.update({"snapshot_id": snapshot_id, "point_in_time": False, "factor_definition": "adjusted/original", "adjustment_source": adjustment_policy})
+        if adjustment_mode not in {"vendor_qfq", "vendor_hfq", "raw"}:
+            raise ValueError("不支持的 adjustment_mode")
+        adjustment = {"vendor_qfq": "qfq", "vendor_hfq": "hfq", "raw": "none"}[adjustment_mode]
+        raw.attrs.update({"snapshot_id": snapshot_id, "point_in_time": False, "factor_definition": "adjusted/original", "adjustment_source": adjustment_mode})
         output = _versioned_target(output_dir, snapshot_id)
         existing_manifest = output / "manifest.json"
         if incremental and existing_manifest.exists():
@@ -600,7 +598,7 @@ class TYFactorCompute:
         factor_set = _controlled(values, "factor_set", factor_set)
         selected_json = _controlled(values, "selected_json", selected_json)
         custom_json = _controlled(values, "custom_json", custom_json)
-        output_dir = _controlled(values, "factor_output_dir", output_dir)
+        output_dir = _controlled(values, "factor_dir", output_dir)
         handle = _handle(export)
         if handle.kind != "QLIB_EXPORT":
             raise ValueError(f"TYFactorCompute 输入类型错误: {handle.kind}")
@@ -644,7 +642,7 @@ class QlibExport:
         return {
             "required": {
                 "csv_path": ("STRING", {"default": ""}),
-                "adjustment": (["qfq", "hfq", "none"],),
+                "adjustment_mode": (["vendor_qfq", "vendor_hfq", "raw", "pit"], {"default": "vendor_qfq", "tooltip": "本地行情导出复权口径；PIT 需要已生成 point-in-time 字段。"}),
                 "output_dir": ("STRING", {"default": "outputs/ty_quant/provider"}),
             },
             "optional": {"control": ("QLIB_CONTROL",)},
@@ -655,11 +653,12 @@ class QlibExport:
     FUNCTION = "run"
     CATEGORY = "TY Quant/Qlib"
 
-    def run(self, csv_path, adjustment, output_dir, control=None):
+    def run(self, csv_path, adjustment_mode, output_dir, control=None):
         values = _control_values(control)
         csv_path = _controlled(values, "csv_path", csv_path)
-        adjustment = _controlled(values, "adjustment", adjustment)
-        output_dir = _controlled(values, "output_root", output_dir)
+        adjustment = _controlled(values, "adjustment_mode", adjustment_mode)
+        output_dir = _controlled(values, "provider_dir", output_dir)
+        adjustment = {"vendor_qfq": "qfq", "vendor_hfq": "hfq", "raw": "none"}.get(str(adjustment), adjustment)
         csv_path = str(resolve_node_path(csv_path, must_exist=True))
         output_dir = str(resolve_node_path(output_dir))
         frame = pd.read_csv(csv_path)
@@ -759,7 +758,7 @@ class QlibTrain:
 
     def run(self, dataset, model, artifact_dir, features=None, control=None):
         values = _control_values(control)
-        artifact_dir = _controlled(values, "artifact_dir", artifact_dir)
+        artifact_dir = _controlled(values, "model_dir", artifact_dir)
         artifact_dir = str(resolve_node_path(artifact_dir))
         dataset_handle, model_handle = _handle(dataset), _handle(model)
         feature_path = dataset_handle.metadata.get("feature_set_path")

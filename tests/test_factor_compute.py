@@ -61,6 +61,7 @@ def test_ty_factor_cache_reuses_same_provider_version(tmp_path, market_frame):
 
 
 def test_alpha158_profile_uses_qlib_standard_provider_fields(tmp_path, market_frame):
+    pytest.importorskip("qlib")
     provider = tmp_path / "provider"
     export_qlib(market_frame, provider, adjustment="qfq")
     handle = compute_ty_factors(provider, factor_set="alpha158", output_dir=tmp_path / "alpha158")
@@ -70,6 +71,7 @@ def test_alpha158_profile_uses_qlib_standard_provider_fields(tmp_path, market_fr
 
 
 def test_ty_feature_set_flows_into_dataset_train_and_predict(tmp_path, market_frame):
+    pytest.importorskip("qlib")
     provider = tmp_path / "provider"
     export_qlib(market_frame, provider, adjustment="qfq")
     feature_handle = compute_ty_factors(

@@ -52,6 +52,7 @@ def test_qlib_export_writes_consistent_provider(tmp_path, market_frame):
 
 
 def test_qlib_reads_exported_binary_provider(tmp_path, market_frame):
+    pytest.importorskip("qlib")
     export_qlib(market_frame, tmp_path / "provider", adjustment="qfq")
     import qlib
     from qlib.data import D

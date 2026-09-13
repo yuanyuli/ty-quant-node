@@ -19,7 +19,7 @@ def test_dataset_model_prediction_backtest_report(tmp_path, market_frame):
     prepared = bundle.dataset.prepare("train")
     assert isinstance(prepared, pd.DataFrame)
     assert "label" in prepared.columns
-    assert bundle.dataset.__class__.__name__ == "DatasetH"
+    assert bundle.dataset.__class__.__name__ in {"DatasetH", "DatasetHCompat"}
     trained = train_model(bundle, ModelSpec("linear", {}), tmp_path / "model")
     signal = predict_model(trained, bundle, "test")
     assert {"instrument", "datetime", "score"}.issubset(signal.columns)
@@ -48,6 +48,7 @@ def test_export_dataset_labels_use_adjusted_provider_close_across_factor_change(
 
 
 def test_lightgbm_model_predicts(market_frame, tmp_path):
+    pytest.importorskip("lightgbm")
     bundle = build_dataset_from_frame(market_frame, adjustment="qfq", segments={"train": ("2024-01-01", "2024-01-04"), "test": ("2024-01-05", "2024-01-06")})
     trained = train_model(bundle, ModelSpec("lightgbm", {"n_estimators": 5}), tmp_path / "lgb")
     signal = predict_model(trained, bundle, "test")

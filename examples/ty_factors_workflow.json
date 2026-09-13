@@ -244,7 +244,7 @@
         1,
         0,
         5.0,
-        "D:\\work_station\\ty-comfyui-node\\outputs\\ty_quant"
+        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\artifacts"
       ],
       "widgets_values_named": {
         "data_source": "tushare",
@@ -268,7 +268,7 @@
         "topk": 1,
         "n_drop": 0,
         "transaction_cost_bps": 5.0,
-        "artifact_root": "D:\\work_station\\ty-comfyui-node\\outputs\\ty_quant"
+        "artifact_root": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\artifacts"
       },
       "color": "#16727c",
       "bgcolor": "#4f0074"
@@ -454,14 +454,14 @@
         "000001.SZ",
         "2024-01-01",
         "2024-12-31",
-        "D:\\work_station\\ty-comfyui-node\\outputs\\ty_quant\\snapshots",
+        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\artifacts\\snapshots",
         true
       ],
       "widgets_values_named": {
         "ts_codes": "000001.SZ",
         "query_start": "2024-01-01",
         "query_end": "2024-12-31",
-        "snapshot_dir": "D:\\work_station\\ty-comfyui-node\\outputs\\ty_quant\\snapshots",
+        "snapshot_dir": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\artifacts\\snapshots",
         "include_events": true
       },
       "color": "#276b74",
@@ -540,12 +540,12 @@
       },
       "widgets_values": [
         "pit",
-        "D:\\work_station\\ty-comfyui-node\\outputs\\ty_quant\\provider",
+        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\artifacts\\provider",
         true
       ],
       "widgets_values_named": {
         "adjustment_mode": "pit",
-        "output_dir": "D:\\work_station\\ty-comfyui-node\\outputs\\ty_quant\\provider",
+        "output_dir": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\artifacts\\provider",
         "incremental": true
       },
       "color": "#356b8c",
@@ -641,13 +641,13 @@
         "ty_factors",
         "[]",
         "[]",
-        "D:\\work_station\\ty-comfyui-node\\outputs\\ty_quant\\factors"
+        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\artifacts\\factors"
       ],
       "widgets_values_named": {
         "factor_set": "ty_factors",
         "selected_json": "[]",
         "custom_json": "[]",
-        "output_dir": "D:\\work_station\\ty-comfyui-node\\outputs\\ty_quant\\factors"
+        "output_dir": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\artifacts\\factors"
       },
       "color": "#6d5a35",
       "bgcolor": "#4d3f26"
@@ -902,10 +902,10 @@
         "Node name for S&R": "QlibTrain"
       },
       "widgets_values": [
-        "D:\\work_station\\ty-comfyui-node\\outputs\\ty_quant\\model"
+        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\artifacts\\model"
       ],
       "widgets_values_named": {
-        "artifact_dir": "D:\\work_station\\ty-comfyui-node\\outputs\\ty_quant\\model"
+        "artifact_dir": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\artifacts\\model"
       },
       "color": "#6d5a35",
       "bgcolor": "#4d3f26"
@@ -1139,10 +1139,10 @@
         "Node name for S&R": "QlibReport"
       },
       "widgets_values": [
-        "D:\\work_station\\ty-comfyui-node\\outputs\\ty_quant\\report"
+        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\artifacts\\report"
       ],
       "widgets_values_named": {
-        "output_dir": "D:\\work_station\\ty-comfyui-node\\outputs\\ty_quant\\report"
+        "output_dir": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\artifacts\\report"
       },
       "color": "#794c36",
       "bgcolor": "#593827"

@@ -30,7 +30,7 @@ TushareConfig -> TushareDailyFetch -> TushareToQlib -> TYFactorCompute
 
 `QlibControl` 是 H3 导演工作台风格的总控节点。它集中保存本地 CSV 或 Tushare 查询、复权方式、训练/测试区间、TY-Factors 选择、模型参数、回测参数和报告目录，再通过 `QLIB_CONTROL` 句柄扇出到各阶段节点。数据、转换、因子、Dataset、模型、训练、预测、回测和报告节点连接总控后，以总控字段为准；未连接总控时仍使用自身 widgets，便于替换数据源或定位问题。
 
-总控节点会在工作流入口校验枚举和风险参数：`n_drop` 必须在 `0` 到 `topk` 之间，交易成本必须是非负有限数，训练/测试区间必须成对且不重叠，Tushare `start_date/end_date` 必须成对且顺序正确，模型和因子模式必须来自支持列表。输出目录只校验非空，实际本地路径白名单仍由执行节点检查。
+总控节点会在工作流入口校验枚举和风险参数：`n_drop` 必须在 `0` 到 `topk` 之间，交易成本必须是非负有限数，训练/测试区间必须成对且不重叠，Tushare `query_start/query_end` 必须成对且顺序正确，模型和因子模式必须来自支持列表。输出目录只校验非空，实际本地路径白名单仍由执行节点检查。
 
 节点之间传递的是带 `kind/version/path/metadata` 的轻量句柄，行情表、模型文件和净值曲线写入本地 artifact 目录，不塞进 workflow JSON。
 
@@ -81,7 +81,7 @@ $env:TUSHARE_TOKEN = "你的 token"
 
 `QlibRuntime` 无论使用真实 Qlib 还是兼容 Dataset 后端，都会先按 `seed` 初始化 Python `random` 和 NumPy 随机源，保证同一输入和参数下的运行顺序一致。
 
-`TushareToQlib` 的 `adjustment_policy` 有四种：`pit`（推荐，事件驱动）、`vendor_qfq`、`vendor_hfq` 和 `none`。`none` 只适合检查原始数据，因子计算会拒绝它。`TYFactorCompute` 默认加载版本化的 `TY-Factors` 注册表，当前包含动量、波动率和成交量比率；选择 `alpha158` 时直接使用 Qlib 的 158 个标准公式，前提是 provider 已经是复权后的标准字段。`selected` 可从两套注册表选因子，`custom` 接受 JSON 因子定义。
+`TushareToQlib` 的 `adjustment_mode` 有四种：`pit`（推荐，事件驱动）、`vendor_qfq`、`vendor_hfq` 和 `raw`。`raw` 只适合检查原始数据，因子计算会拒绝它。`TYFactorCompute` 默认加载版本化的 `TY-Factors` 注册表，当前包含动量、波动率和成交量比率；选择 `alpha158` 时直接使用 Qlib 的 158 个标准公式，前提是 provider 已经是复权后的标准字段。`selected` 可从两套注册表选因子，`custom` 接受 JSON 因子定义。
 
 动量因子采用统一定义：`当前 ty_close / N 日前 ty_close - 1`；预热不足或回看价格为零时保留 NaN，并在质量报告中计数。这样未来复权事件不会改变已经提交的旧 snapshot，因子方向也与常见量化研究口径一致。
 
@@ -105,7 +105,9 @@ $env:TY_QUANT_ALLOWED_ROOTS = "D:\\quant-data;D:\\quant-artifacts"
 
 路径中的 URL、设备路径和 `..` 穿越会在节点读取前直接拒绝。句柄携带的路径也会重新校验，不能通过手工修改 workflow 绕过白名单。
 
-ComfyUI 注册 key 仍使用 `QlibControl`、`QlibPredict` 等英文稳定标识，以兼容已有 workflow；界面搜索和节点标题显示为 `TY Quant 总控`、`TY Quant 预测` 等中文产品名称。
+ComfyUI 注册 key 使用 `QlibControl`、`QlibPredict` 等英文标识；界面搜索和节点标题显示为 `TY Quant 总控`、`TY Quant 预测` 等中文产品名称。schema v2 不读取旧总控字段，旧示例已删除并重新生成。
+
+总控节点提供 `/ty-quant-node/fs/roots` 和 `/ty-quant-node/fs/list` 两个白名单目录浏览接口，前端路径按钮使用它们选择 CSV 或产物目录；日期字段在 ComfyUI 中显示为原生日期控件。
 
 工作流结构由 `src/ty_quant_node/workflow.py` 生成和校验。独立验证使用 `uv run pytest ty-quant-node/tests -q`；本地 CSV 联调将生成 `.artifacts/comfyui-mvp/provider`、`.artifacts/comfyui-mvp/model` 和 `.artifacts/comfyui-mvp/report/equity.png`，Tushare 工作流以 `QlibControl` 为总控并使用 `.artifacts/ty-factors-mvp/` 下的 snapshot、provider、factors、model 和 report 子目录。
 

@@ -28,6 +28,7 @@ def test_comfyui_root_registers_full_node_group():
     assert expected.issubset(module.NODE_CLASS_MAPPINGS)
     for name in expected:
         assert module.NODE_CLASS_MAPPINGS[name].INPUT_TYPES()["required"]
+    assert module.WEB_DIRECTORY.endswith("web")
 
 
 def test_runtime_node_initializes_qlib(tmp_path):

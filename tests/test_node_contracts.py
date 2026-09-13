@@ -7,7 +7,7 @@ def test_tushare_fetch_outputs_market_data_and_conversion_outputs_qlib_export():
     assert TushareDailyFetch.RETURN_TYPES == ("MARKET_DATA",)
     assert TushareToQlib.RETURN_TYPES == ("QLIB_EXPORT",)
     assert TYFactorCompute.RETURN_TYPES == ("QLIB_FEATURE_SET", "STRING")
-    assert TushareDailyFetch.INPUT_TYPES()["required"]["snapshot_dir"][0] == "STRING"
+    assert TushareDailyFetch.INPUT_TYPES()["required"]["query_start"][0] == "STRING"
     assert TushareToQlib.INPUT_TYPES()["required"]["market_data"][0] == "MARKET_DATA"
 
 

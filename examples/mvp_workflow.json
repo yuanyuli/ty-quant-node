@@ -222,7 +222,7 @@
       },
       "widgets_values": [
         "local_csv",
-        "D:\\work_station\\ty-comfyui-node\\examples\\market.csv",
+        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\tests\\fixtures\\market.csv",
         "",
         "2024-01-01",
         "2024-12-31",
@@ -242,11 +242,11 @@
         1,
         0,
         5.0,
-        "D:\\work_station\\ty-comfyui-node\\outputs\\ty_quant"
+        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\artifacts"
       ],
       "widgets_values_named": {
         "data_source": "local_csv",
-        "csv_path": "D:\\work_station\\ty-comfyui-node\\examples\\market.csv",
+        "csv_path": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\tests\\fixtures\\market.csv",
         "ts_codes": "",
         "query_start": "2024-01-01",
         "query_end": "2024-12-31",
@@ -266,7 +266,7 @@
         "topk": 1,
         "n_drop": 0,
         "transaction_cost_bps": 5.0,
-        "artifact_root": "D:\\work_station\\ty-comfyui-node\\outputs\\ty_quant"
+        "artifact_root": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\artifacts"
       },
       "color": "#16727c",
       "bgcolor": "#4f0074"
@@ -336,14 +336,14 @@
         "Node name for S&R": "QlibExport"
       },
       "widgets_values": [
-        "D:\\work_station\\ty-comfyui-node\\examples\\market.csv",
+        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\tests\\fixtures\\market.csv",
         "vendor_qfq",
-        "D:\\work_station\\ty-comfyui-node\\outputs\\ty_quant\\provider"
+        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\artifacts\\provider"
       ],
       "widgets_values_named": {
-        "csv_path": "D:\\work_station\\ty-comfyui-node\\examples\\market.csv",
+        "csv_path": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\tests\\fixtures\\market.csv",
         "adjustment_mode": "vendor_qfq",
-        "output_dir": "D:\\work_station\\ty-comfyui-node\\outputs\\ty_quant\\provider"
+        "output_dir": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\artifacts\\provider"
       },
       "color": "#356b8c",
       "bgcolor": "#254b63"
@@ -832,10 +832,10 @@
         "Node name for S&R": "QlibReport"
       },
       "widgets_values": [
-        "D:\\work_station\\ty-comfyui-node\\outputs\\ty_quant\\report"
+        "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\artifacts\\report"
       ],
       "widgets_values_named": {
-        "output_dir": "D:\\work_station\\ty-comfyui-node\\outputs\\ty_quant\\report"
+        "output_dir": "D:\\work_station\\ty-comfyui-node\\ty-quant-node\\artifacts\\report"
       },
       "color": "#794c36",
       "bgcolor": "#593827"

@@ -7,21 +7,28 @@ from ty_quant_node.nodes import QlibControl, TushareConfig, TushareDailyFetch, T
 
 def _control(tmp_path, **overrides):
     values = {
-        "csv_path": "",
-        "adjustment": "qfq",
-        "output_root": str(tmp_path / "provider"),
+        "data_source": "tushare",
+        "csv_path": str(tmp_path / "market.csv"),
+        "ts_codes": "000001.SZ",
+        "query_start": "2024-01-01",
+        "query_end": "2024-12-31",
+        "adjustment_mode": "pit",
+        "include_events": True,
+        "incremental": True,
         "train_start": "",
         "train_end": "",
         "test_start": "",
         "test_end": "",
+        "factor_set": "ty_factors",
+        "selected_json": "[]",
+        "custom_json": "[]",
         "model_type": "linear",
         "params_json": "{}",
-        "artifact_dir": str(tmp_path / "model"),
         "segment": "test",
         "topk": 1,
         "n_drop": 0,
         "transaction_cost_bps": 5.0,
-        "report_dir": str(tmp_path / "report"),
+        "artifact_root": str(tmp_path / "artifacts"),
     }
     values.update(overrides)
     return QlibControl().run(**values)[0]
@@ -155,13 +162,12 @@ def test_tushare_fetch_uses_controlled_query_values(monkeypatch, tmp_path):
     control = _control(
         tmp_path,
         ts_codes="000001.SZ;600000.SH",
-        start_date="20240102",
-        end_date="20240103",
-        snapshot_dir=str(tmp_path / "controlled-snapshot"),
+        query_start="2024-01-02",
+        query_end="2024-01-03",
         include_events=False,
     )
 
     TushareDailyFetch().run(config, "WRONG.SZ", "19990101", "19990102", str(tmp_path / "wrong"), True, control=control)
 
-    assert calls == [(["000001.SZ", "600000.SH"], "20240102", "20240103", False)]
-    assert (tmp_path / "controlled-snapshot" / "manifest.json").exists()
+    assert calls == [(["000001.SZ", "600000.SH"], "2024-01-02", "2024-01-03", False)]
+    assert (tmp_path / "artifacts" / "snapshots" / "manifest.json").exists()

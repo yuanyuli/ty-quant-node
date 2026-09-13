@@ -96,11 +96,22 @@ def build_dataset_from_export(export_path: str | Path, *, segments=None) -> Data
     check_provider_consistency(path)
     manifest = json.loads((path / "manifest.json").read_text(encoding="utf-8"))
     frame = pd.read_parquet(path / "dataset.parquet")
-    adjustment = str(manifest.get("adjustment", "qfq"))
-    bundle = build_dataset_from_frame(frame, adjustment="none", segments=segments, allow_unadjusted=True)
-    bundle.export_path = path
-    bundle.manifest = manifest
-    return bundle
+    required = {"instrument", "datetime", "close"}
+    missing = required - set(frame.columns)
+    if missing:
+        raise ValueError(f"Qlib provider 缺少调整后标签字段: {', '.join(sorted(missing))}")
+    adjusted = frame.copy()
+    adjusted["datetime"] = pd.to_datetime(adjusted["datetime"]).dt.normalize()
+    adjusted["instrument"] = adjusted["instrument"].astype(str).str.upper()
+    adjusted = adjusted.sort_values(["instrument", "datetime"]).reset_index(drop=True)
+    adjusted["close"] = pd.to_numeric(adjusted["close"], errors="coerce")
+    adjusted["feature_return"] = adjusted.groupby("instrument")["close"].pct_change().replace([float("inf"), -float("inf")], pd.NA).fillna(0.0)
+    adjusted["label"] = adjusted.groupby("instrument")["close"].shift(-1) / adjusted["close"] - 1.0
+    dates = sorted(pd.Timestamp(value) for value in adjusted["datetime"].unique())
+    segment_config = segments or _default_segments(dates)
+    segment_config = {key: (str(pd.Timestamp(start).date()), str(pd.Timestamp(end).date())) for key, (start, end) in segment_config.items()}
+    dataset = _make_dataset(adjusted, segment_config, ["feature_return"])
+    return DatasetBundle(dataset, adjusted, segment_config, ["feature_return"], manifest, path)
 
 
 def build_dataset_from_feature_set(
